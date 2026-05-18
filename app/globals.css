@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #03050f;
+  --green: #00ffa0;
+  --green-dim: #00cc80;
+  --surface: #080d1a;
+  --border: #0d1f2d;
+  --muted: #2a3a4a;
+  --text: #8899aa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--green);
+  font-family: "Courier New", Courier, monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Subtle scanline overlay */
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 255, 160, 0.2);
+  color: var(--green);
+}
+
+@layer utilities {
+  .text-green {
+    color: var(--green);
+  }
+  .text-muted {
+    color: var(--text);
+  }
+  .border-terminal {
+    border-color: var(--border);
+  }
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
