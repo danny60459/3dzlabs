@@ -44,7 +44,17 @@ export default function ToolCard({ tool }) {
 
       {/* Header row: category + pricing */}
       <div className="flex items-start justify-between mb-3">
-        <span className="text-xs text-brand-text uppercase tracking-widest">{tool.category}</span>
+        <span className="flex items-center gap-1 text-xs text-brand-text uppercase tracking-widest">
+          {tool.category === "Phone Apps" && (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                 className="w-3 h-3 shrink-0 text-brand-green">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+              <line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+          )}
+          {tool.category}
+        </span>
         <span className={`text-xs border px-2 py-0.5 rounded-sm shrink-0 ml-2 ${pricingStyle(tool.pricing)}`}>
           {tool.pricing}
         </span>
