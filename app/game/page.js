@@ -210,7 +210,9 @@ export default function GamePage() {
     let lives     = 3;
     let timer     = SECTOR_TIMERS[0];
     let lastTick  = performance.now();
-    let iframes   = 0;
+    let iframes     = 0;
+    let shakeFrames = 0;
+    let audioCtx    = null;
 
     const player = { x: WALL + 34, y: MY };
     const daemon  = { x: 0, y: 0, active: false, speed: 1.1 };
@@ -238,17 +240,155 @@ export default function GamePage() {
       daemon.y      = 0;
     }
 
+    // ── Audio ──────────────────────────────────────────────────────────────
+    function ac() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    // Two-tone pickup beep
+    function sndLoot() {
+      try {
+        const c = ac(), now = c.currentTime;
+        [660, 1050].forEach((freq, i) => {
+          const osc = c.createOscillator(), g = c.createGain();
+          osc.type = "square"; osc.frequency.value = freq;
+          osc.connect(g); g.connect(c.destination);
+          const t0 = now + i * 0.065;
+          g.gain.setValueAtTime(0.12, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.1);
+          osc.start(t0); osc.stop(t0 + 0.11);
+        });
+      } catch(e) {}
+    }
+
+    // Low thump once per second while timer ≤ 15
+    function sndWarnPulse() {
+      try {
+        const c = ac(), now = c.currentTime;
+        const osc = c.createOscillator(), g = c.createGain();
+        osc.type = "sine"; osc.frequency.value = 110;
+        osc.connect(g); g.connect(c.destination);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.28, now + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.start(now); osc.stop(now + 0.23);
+      } catch(e) {}
+    }
+
+    // Rising sawtooth sweep when daemon materialises
+    function sndDaemonSpawn() {
+      try {
+        const c = ac(), now = c.currentTime;
+        const osc = c.createOscillator(), filt = c.createBiquadFilter(), g = c.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(60, now);
+        osc.frequency.exponentialRampToValueAtTime(520, now + 1.6);
+        filt.type = "lowpass";
+        filt.frequency.setValueAtTime(300, now);
+        filt.frequency.exponentialRampToValueAtTime(5000, now + 1.6);
+        osc.connect(filt); filt.connect(g); g.connect(c.destination);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.22, now + 0.08);
+        g.gain.setValueAtTime(0.22, now + 1.3);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+        osc.start(now); osc.stop(now + 1.9);
+      } catch(e) {}
+    }
+
+    // Noise burst + descending pitch sweep on hit / death
+    function sndDeath() {
+      try {
+        const c = ac(), now = c.currentTime;
+        const len = Math.floor(c.sampleRate * 0.55);
+        const buf = c.createBuffer(1, len, c.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+        const src = c.createBufferSource(), filt = c.createBiquadFilter(), g = c.createGain();
+        src.buffer = buf;
+        filt.type = "bandpass"; filt.frequency.value = 180; filt.Q.value = 0.6;
+        src.connect(filt); filt.connect(g); g.connect(c.destination);
+        g.gain.setValueAtTime(0.45, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        src.start(now);
+        const osc = c.createOscillator(), g2 = c.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.55);
+        osc.connect(g2); g2.connect(c.destination);
+        g2.gain.setValueAtTime(0.18, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        osc.start(now); osc.stop(now + 0.56);
+      } catch(e) {}
+    }
+
+    // Three-note ascending chime on room clear
+    function sndRoomClear() {
+      try {
+        const c = ac(), now = c.currentTime;
+        [523, 659, 784].forEach((freq, i) => {
+          const osc = c.createOscillator(), g = c.createGain();
+          osc.type = "square"; osc.frequency.value = freq;
+          osc.connect(g); g.connect(c.destination);
+          const t0 = now + i * 0.1;
+          g.gain.setValueAtTime(0.09, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+          osc.start(t0); osc.stop(t0 + 0.19);
+        });
+      } catch(e) {}
+    }
+
+    // Four-note arpeggio with held final note on sector clear
+    function sndSectorFanfare() {
+      try {
+        const c = ac(), now = c.currentTime;
+        [523, 659, 784, 1047].forEach((freq, i) => {
+          const osc = c.createOscillator(), g = c.createGain();
+          osc.type = "square"; osc.frequency.value = freq;
+          osc.connect(g); g.connect(c.destination);
+          const t0 = now + i * 0.13;
+          const dur = i === 3 ? 0.55 : 0.18;
+          g.gain.setValueAtTime(0.11, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+          osc.start(t0); osc.stop(t0 + dur + 0.01);
+        });
+      } catch(e) {}
+    }
+
+    // Extended ascending run with big final note on full victory
+    function sndWinFanfare() {
+      try {
+        const c = ac(), now = c.currentTime;
+        [523, 659, 784, 1047, 784, 1047, 1568].forEach((freq, i) => {
+          const osc = c.createOscillator(), g = c.createGain();
+          osc.type = "square"; osc.frequency.value = freq;
+          osc.connect(g); g.connect(c.destination);
+          const t0 = now + i * 0.1;
+          const last = i === 6;
+          g.gain.setValueAtTime(last ? 0.16 : 0.1, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + (last ? 0.9 : 0.14));
+          osc.start(t0); osc.stop(t0 + (last ? 0.91 : 0.15));
+        });
+      } catch(e) {}
+    }
+
     // ── Input ──────────────────────────────────────────────────────────────
     const keys    = {};
     const onDown  = e => { keys[e.key] = true; };
     const onUp    = e => { keys[e.key] = false; };
     const onR     = e => {
-      if ((e.key === "r" || e.key === "R") && phase !== "playing" && phase !== "title") restart();
+      if ((e.key === "r" || e.key === "R") && phase !== "playing" && phase !== "title") {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        restart();
+      }
     };
     const onEnter = e => {
       if (e.key !== "Enter") return;
-      if (phase === "title")          { phase = "playing"; lastTick = performance.now(); }
-      else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
+      if (phase === "title") {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        phase = "playing"; lastTick = performance.now();
+      } else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
     };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup",   onUp);
@@ -342,10 +482,12 @@ export default function GamePage() {
       if (now - lastTick >= 1000) {
         lastTick = now;
         if (timer > 0) timer--;
+        if (timer > 0 && timer <= 15 && !daemon.active) sndWarnPulse();
         if (timer === 0 && !daemon.active) {
           daemon.active = true;
           daemon.x = WALL + 8;
           daemon.y = WALL + 8;
+          sndDaemonSpawn();
         }
       }
 
@@ -381,6 +523,8 @@ export default function GamePage() {
           if (overlap(pr, { x: e.x - E_SZ/2, y: e.y - E_SZ/2, w: E_SZ, h: E_SZ })) {
             lives--;
             iframes = 90;
+            shakeFrames = 14;
+            sndDeath();
             if (lives <= 0) { phase = "gameover"; return; }
             break;
           }
@@ -388,21 +532,27 @@ export default function GamePage() {
       }
 
       const pr = pRect();
+      let gotLoot = false;
       for (const t of rs.treasures) {
         if (t.collected) continue;
         if (overlap(pr, { x: t.x - T_SZ, y: t.y - T_SZ, w: T_SZ * 2, h: T_SZ * 2 })) {
           t.collected = true;
           score += 10;
+          gotLoot = true;
+          sndLoot();
         }
       }
 
-      // Check sector complete
-      const [sStart, sEnd] = SECTOR_RANGES[sectorIdx];
-      if (roomStates.slice(sStart, sEnd).every(s => s.treasures.every(t => t.collected))) {
-        score += 100;
-        if (sectorIdx === 2) { score += 500; phase = "win"; }
-        else                 { phase = "sectorComplete"; }
-        return;
+      // Check sector / room complete
+      if (gotLoot) {
+        const [sStart, sEnd] = SECTOR_RANGES[sectorIdx];
+        if (roomStates.slice(sStart, sEnd).every(s => s.treasures.every(t => t.collected))) {
+          score += 100;
+          if (sectorIdx === 2) { score += 500; phase = "win"; sndWinFanfare(); }
+          else                 { phase = "sectorComplete"; sndSectorFanfare(); }
+          return;
+        }
+        if (rs.treasures.every(t => t.collected)) sndRoomClear();
       }
 
       if (daemon.active) {
@@ -412,6 +562,7 @@ export default function GamePage() {
         daemon.x += (dx / dist) * daemon.speed;
         daemon.y += (dy / dist) * daemon.speed;
         if (overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
+          sndDeath(); shakeFrames = 22;
           phase = "gameover";
         }
       }
@@ -509,9 +660,16 @@ export default function GamePage() {
 
       ctx.save();
       ctx.translate(0, HUD_H);
+      if (shakeFrames > 0) {
+        ctx.translate(
+          (Math.random() - 0.5) * shakeFrames * 0.4,
+          (Math.random() - 0.5) * shakeFrames * 0.4
+        );
+        shakeFrames--;
+      }
 
       ctx.fillStyle = SURFACE;
-      ctx.fillRect(0, 0, W, GH);
+      ctx.fillRect(-12, -12, W + 24, GH + 24);
 
       for (let y = 0; y < GH; y += 3) {
         ctx.fillStyle = "rgba(0,255,160,0.016)";
@@ -776,6 +934,7 @@ export default function GamePage() {
       window.removeEventListener("keyup",   onUp);
       window.removeEventListener("keydown", onR);
       window.removeEventListener("keydown", onEnter);
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
     };
   }, []);
 
