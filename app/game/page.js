@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-// ─── Canvas / layout constants ───────────────────────────────────────────────
+// ─── Canvas / layout constants ────────────────────────────────────────────────
 const W      = 800;
 const H      = 560;
 const HUD_H  = 60;
-const GH     = H - HUD_H;   // game-area height: 500
+const GH     = H - HUD_H;
 const WALL   = 16;
 const DOOR_W = 56;
-const MX     = W / 2;       // room centre x
-const MY     = GH / 2;      // room centre y
+const MX     = W / 2;
+const MY     = GH / 2;
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const GREEN   = "#00ffa0";
@@ -19,18 +19,20 @@ const BG      = "#03050f";
 const SURFACE = "#060f0a";
 
 // ─── Entity sizes ─────────────────────────────────────────────────────────────
-const P_SZ = 20;   // player
-const E_SZ = 20;   // enemy
-const T_SZ = 10;   // treasure half-size
-const D_SZ = 34;   // daemon
+const P_SZ = 20;
+const E_SZ = 20;
+const T_SZ = 10;
+const D_SZ = 34;
 
-// ─── Room definitions ─────────────────────────────────────────────────────────
-//  innerWalls : [x, y, w, h] in game-area coords
-//  enemyDefs  : patrol segments; axis "x"|"y", dir starts at +1
-//  treasureDefs: spawn positions
+// ─── Sector config ────────────────────────────────────────────────────────────
+const SECTOR_TIMERS = [60, 45, 30];
+const SECTOR_RANGES = [[0, 3], [3, 6], [6, 9]];
+
+// ─── 9 rooms across 3 sectors ─────────────────────────────────────────────────
 const ROOMS = [
+  // ── SECTOR 1 · Easy ──────────────────────────────────────────────────────
   {
-    name: "SECTOR-01",
+    name: "S1-R1",
     innerWalls: [
       [130,  90, 150, 14],
       [130,  90,  14, 110],
@@ -41,15 +43,11 @@ const ROOMS = [
       { x: 210, y: 160, axis: "x", min: 150, max: 370, speed: 1.5 },
       { x: 560, y: 355, axis: "y", min: 250, max: 430, speed: 1.2 },
     ],
-    treasureDefs: [
-      { x: 360, y: 130 },
-      { x: 615, y: 160 },
-      { x: 670, y: 400 },
-    ],
+    treasureDefs: [{ x: 360, y: 130 }, { x: 615, y: 160 }, { x: 670, y: 400 }],
     exits: [{ side: "right", toRoom: 1 }],
   },
   {
-    name: "SECTOR-02",
+    name: "S1-R2",
     innerWalls: [
       [200, 120,  14, 190],
       [200, 120, 140,  14],
@@ -59,21 +57,12 @@ const ROOMS = [
     enemyDefs: [
       { x: 110, y: 200, axis: "x", min:  50, max: 185, speed: 1.8 },
       { x: 390, y: 160, axis: "x", min: 230, max: 440, speed: 1.5 },
-      { x: 660, y: 360, axis: "y", min: 200, max: 440, speed: 2.0 },
     ],
-    treasureDefs: [
-      { x: 100, y: 395 },
-      { x: 360, y: 250 },
-      { x: 650, y: 110 },
-      { x: 470, y: 435 },
-    ],
-    exits: [
-      { side: "left",  toRoom: 0 },
-      { side: "down",  toRoom: 2 },
-    ],
+    treasureDefs: [{ x: 100, y: 395 }, { x: 360, y: 250 }, { x: 650, y: 110 }],
+    exits: [{ side: "left", toRoom: 0 }, { side: "right", toRoom: 2 }],
   },
   {
-    name: "SECTOR-03",
+    name: "S1-R3",
     innerWalls: [
       [110, 160, 190,  14],
       [110, 160,  14, 190],
@@ -82,20 +71,125 @@ const ROOMS = [
       [300, 380, 160,  14],
     ],
     enemyDefs: [
-      { x: 210, y: 110, axis: "x", min: 140, max: 395, speed: 2.0 },
-      { x: 510, y: 210, axis: "y", min:  90, max: 300, speed: 1.8 },
-      { x: 650, y: 395, axis: "x", min: 610, max: 760, speed: 2.3 },
-      { x: 160, y: 390, axis: "y", min: 360, max: 460, speed: 1.6 },
+      { x: 210, y: 110, axis: "x", min: 140, max: 395, speed: 1.8 },
+      { x: 510, y: 210, axis: "y", min:  90, max: 300, speed: 1.6 },
+      { x: 160, y: 390, axis: "y", min: 360, max: 460, speed: 1.5 },
     ],
-    treasureDefs: [
-      { x: 350, y: 110 },
-      { x: 110, y: 435 },
-      { x: 560, y: 130 },
-      { x: 680, y: 260 },
-      { x: 420, y: 435 },
-      { x: 260, y: 260 },
+    treasureDefs: [{ x: 350, y: 110 }, { x: 110, y: 435 }, { x: 560, y: 130 }, { x: 680, y: 260 }],
+    exits: [{ side: "left", toRoom: 1 }],
+  },
+
+  // ── SECTOR 2 · Medium ────────────────────────────────────────────────────
+  {
+    name: "S2-R1",
+    innerWalls: [
+      [350,  80,  14, 180],
+      [100, 260, 240,  14],
+      [520, 200,  14, 180],
+      [200, 380, 200,  14],
     ],
-    exits: [{ side: "up", toRoom: 1 }],
+    enemyDefs: [
+      { x: 200, y: 150, axis: "y", min:  90, max: 250, speed: 2.0 },
+      { x: 480, y: 120, axis: "x", min: 375, max: 770, speed: 2.2 },
+      { x: 650, y: 430, axis: "y", min: 280, max: 460, speed: 2.0 },
+    ],
+    treasureDefs: [{ x: 160, y: 130 }, { x: 450, y: 130 }, { x: 300, y: 330 }, { x: 690, y: 170 }],
+    exits: [{ side: "right", toRoom: 4 }],
+  },
+  {
+    name: "S2-R2",
+    innerWalls: [
+      [160, 100,  14, 200],
+      [160, 100, 180,  14],
+      [500, 200,  14, 200],
+      [360, 390, 140,  14],
+      [260, 310, 100,  14],
+    ],
+    enemyDefs: [
+      { x:  90, y: 310, axis: "y", min: 120, max: 460, speed: 2.3 },
+      { x: 320, y: 180, axis: "x", min: 190, max: 490, speed: 2.0 },
+      { x: 620, y: 120, axis: "y", min:  80, max: 390, speed: 2.5 },
+    ],
+    treasureDefs: [{ x: 90, y: 140 }, { x: 680, y: 430 }, { x: 300, y: 240 }, { x: 570, y: 310 }],
+    exits: [{ side: "left", toRoom: 3 }, { side: "right", toRoom: 5 }],
+  },
+  {
+    name: "S2-R3",
+    innerWalls: [
+      [ 80, 120, 300,  14],
+      [ 80, 120,  14, 160],
+      [ 80, 280, 200,  14],
+      [440, 180,  14, 220],
+      [560, 320, 200,  14],
+      [440, 400, 120,  14],
+    ],
+    enemyDefs: [
+      { x: 200, y: 200, axis: "x", min: 110, max: 370, speed: 2.2 },
+      { x: 350, y: 360, axis: "y", min: 300, max: 460, speed: 2.5 },
+      { x: 580, y: 220, axis: "y", min: 100, max: 305, speed: 2.8 },
+      { x: 690, y: 430, axis: "x", min: 580, max: 760, speed: 2.3 },
+    ],
+    treasureDefs: [{ x: 200, y: 80 }, { x: 400, y: 100 }, { x: 520, y: 450 }, { x: 720, y: 260 }, { x: 100, y: 400 }],
+    exits: [{ side: "left", toRoom: 4 }],
+  },
+
+  // ── SECTOR 3 · Hard ──────────────────────────────────────────────────────
+  {
+    name: "S3-R1",
+    innerWalls: [
+      [200,  80,  14, 260],
+      [200,  80, 210,  14],
+      [540, 210,  14, 160],
+      [540, 210, 140,  14],
+      [300, 360, 160,  14],
+    ],
+    enemyDefs: [
+      { x: 110, y: 180, axis: "y", min: 100, max: 330, speed: 2.5 },
+      { x: 380, y: 155, axis: "x", min: 230, max: 520, speed: 2.8 },
+      { x: 650, y: 300, axis: "y", min: 230, max: 460, speed: 3.0 },
+      { x: 430, y: 440, axis: "x", min: 310, max: 760, speed: 2.7 },
+    ],
+    treasureDefs: [{ x: 100, y: 430 }, { x: 390, y: 55 }, { x: 660, y: 150 }, { x: 610, y: 440 }, { x: 250, y: 290 }],
+    exits: [{ side: "right", toRoom: 7 }],
+  },
+  {
+    name: "S3-R2",
+    innerWalls: [
+      [120, 200, 200,  14],
+      [120,  80,  14, 200],
+      [400, 300,  14, 160],
+      [400, 300, 200,  14],
+      [600, 100,  14, 200],
+      [240, 380, 160,  14],
+    ],
+    enemyDefs: [
+      { x: 220, y: 130, axis: "x", min: 140, max: 390, speed: 3.0 },
+      { x:  90, y: 360, axis: "y", min: 220, max: 460, speed: 2.8 },
+      { x: 520, y: 180, axis: "y", min: 100, max: 290, speed: 3.2 },
+      { x: 700, y: 390, axis: "y", min: 310, max: 460, speed: 2.9 },
+    ],
+    treasureDefs: [{ x: 90, y: 130 }, { x: 260, y: 300 }, { x: 680, y: 240 }, { x: 360, y: 450 }, { x: 540, y: 80 }],
+    exits: [{ side: "left", toRoom: 6 }, { side: "right", toRoom: 8 }],
+  },
+  {
+    name: "S3-R3",
+    innerWalls: [
+      [160, 120, 280,  14],
+      [160, 120,  14, 170],
+      [160, 290, 170,  14],
+      [480, 200,  14, 180],
+      [480, 380, 200,  14],
+      [560, 100,  14, 100],
+    ],
+    enemyDefs: [
+      { x:  90, y: 220, axis: "y", min: 140, max: 460, speed: 3.0 },
+      { x: 320, y: 180, axis: "x", min: 180, max: 470, speed: 3.3 },
+      { x: 650, y: 150, axis: "y", min:  80, max: 390, speed: 3.5 },
+      { x: 580, y: 440, axis: "x", min: 490, max: 760, speed: 3.0 },
+      { x: 300, y: 420, axis: "x", min: 175, max: 470, speed: 3.2 },
+    ],
+    treasureDefs: [{ x: 90, y: 80 }, { x: 420, y: 80 }, { x: 700, y: 430 }, { x: 250, y: 390 }, { x: 560, y: 460 }, { x: 680, y: 300 }],
+    exits: [{ side: "left", toRoom: 7 }],
   },
 ];
 
@@ -108,20 +202,19 @@ export default function GamePage() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    // ── Mutable game state (plain vars inside closure) ──────────────────────
-    let phase    = "title";     // "title" | "playing" | "gameover" | "win"
-    let roomIdx  = 0;
-    let score    = 0;
-    let lives    = 3;
-    let timer    = 60;
-    let lastTick = performance.now();
-    let iframes  = 0;           // invincibility frames after enemy hit
+    // ── Mutable game state ──────────────────────────────────────────────────
+    let phase     = "title";  // "title"|"playing"|"sectorComplete"|"gameover"|"win"
+    let sectorIdx = 0;
+    let roomIdx   = 0;
+    let score     = 0;
+    let lives     = 3;
+    let timer     = SECTOR_TIMERS[0];
+    let lastTick  = performance.now();
+    let iframes   = 0;
 
     const player = { x: WALL + 34, y: MY };
+    const daemon  = { x: 0, y: 0, active: false, speed: 1.1 };
 
-    const daemon = { x: 0, y: 0, active: false, speed: 1.1 };
-
-    // Per-room mutable state (enemies + treasures)
     let roomStates = makeRoomStates();
 
     function makeRoomStates() {
@@ -131,15 +224,31 @@ export default function GamePage() {
       }));
     }
 
+    function enterSector(idx) {
+      sectorIdx     = idx;
+      roomIdx       = SECTOR_RANGES[idx][0];
+      timer         = SECTOR_TIMERS[idx];
+      lastTick      = performance.now();
+      iframes       = 0;
+      player.x      = WALL + 34;
+      player.y      = MY;
+      daemon.active = false;
+      daemon.speed  = 1.1 + idx * 0.35;
+      daemon.x      = 0;
+      daemon.y      = 0;
+    }
+
     // ── Input ──────────────────────────────────────────────────────────────
-    const keys = {};
+    const keys    = {};
     const onDown  = e => { keys[e.key] = true; };
     const onUp    = e => { keys[e.key] = false; };
     const onR     = e => {
-      if ((e.key === "r" || e.key === "R") && phase !== "playing") restart();
+      if ((e.key === "r" || e.key === "R") && phase !== "playing" && phase !== "title") restart();
     };
     const onEnter = e => {
-      if (e.key === "Enter" && phase === "title") { phase = "playing"; lastTick = performance.now(); }
+      if (e.key !== "Enter") return;
+      if (phase === "title")          { phase = "playing"; lastTick = performance.now(); }
+      else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
     };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup",   onUp);
@@ -151,49 +260,38 @@ export default function GamePage() {
       return a.x < b.x + b.w && a.x + a.w > b.x &&
              a.y < b.y + b.h && a.y + a.h > b.y;
     }
-
     function pRect() {
       return { x: player.x - P_SZ / 2, y: player.y - P_SZ / 2, w: P_SZ, h: P_SZ };
     }
 
-    // Build wall rects for a given room (border + inner)
     function buildWalls(idx) {
       const room  = ROOMS[idx];
       const exits = new Set(room.exits.map(e => e.side));
       const out   = [];
-
-      // Border wall segments with door gaps
       const borders = [
-        { side: "left",  bx: 0,       by: 0,       bw: WALL, bh: GH,   mid: MY, horiz: false },
-        { side: "right", bx: W - WALL, by: 0,       bw: WALL, bh: GH,   mid: MY, horiz: false },
-        { side: "up",    bx: 0,       by: 0,       bw: W,    bh: WALL, mid: MX, horiz: true  },
-        { side: "down",  bx: 0,       by: GH-WALL, bw: W,    bh: WALL, mid: MX, horiz: true  },
+        { side: "left",  bx: 0,        by: 0,        bw: WALL, bh: GH,   mid: MY, horiz: false },
+        { side: "right", bx: W - WALL, by: 0,        bw: WALL, bh: GH,   mid: MY, horiz: false },
+        { side: "up",    bx: 0,        by: 0,        bw: W,    bh: WALL, mid: MX, horiz: true  },
+        { side: "down",  bx: 0,        by: GH-WALL,  bw: W,    bh: WALL, mid: MX, horiz: true  },
       ];
-
       for (const b of borders) {
         if (!exits.has(b.side)) {
           out.push({ x: b.bx, y: b.by, w: b.bw, h: b.bh });
         } else {
           const half = DOOR_W / 2;
           if (b.horiz) {
-            // gap in x
-            out.push({ x: b.bx,            y: b.by, w: b.mid - half,         h: b.bh });
-            out.push({ x: b.mid + half,     y: b.by, w: W - b.mid - half,     h: b.bh });
+            out.push({ x: b.bx,        y: b.by, w: b.mid - half,     h: b.bh });
+            out.push({ x: b.mid + half, y: b.by, w: W - b.mid - half, h: b.bh });
           } else {
-            // gap in y
-            out.push({ x: b.bx, y: b.by,            w: b.bw, h: b.mid - half       });
-            out.push({ x: b.bx, y: b.mid + half,     w: b.bw, h: GH - b.mid - half });
+            out.push({ x: b.bx, y: b.by,         w: b.bw, h: b.mid - half       });
+            out.push({ x: b.bx, y: b.mid + half,  w: b.bw, h: GH - b.mid - half });
           }
         }
       }
-
-      // Inner walls
       for (const [x, y, w, h] of room.innerWalls) out.push({ x, y, w, h });
-
       return out;
     }
 
-    // Push player out of walls (3 iterations to handle corners)
     function resolveWalls(walls) {
       for (let pass = 0; pass < 3; pass++) {
         for (const w of walls) {
@@ -216,24 +314,23 @@ export default function GamePage() {
       const hw = DOOR_W / 2;
       for (const exit of ROOMS[roomIdx].exits) {
         const { side, toRoom } = exit;
-        if (side === "right" && player.x > W - WALL - 3       && Math.abs(player.y - MY) < hw) { enterRoom(toRoom, "left");  return; }
-        if (side === "left"  && player.x < WALL + 3           && Math.abs(player.y - MY) < hw) { enterRoom(toRoom, "right"); return; }
-        if (side === "down"  && player.y > GH - WALL - 3      && Math.abs(player.x - MX) < hw) { enterRoom(toRoom, "up");    return; }
-        if (side === "up"    && player.y < WALL + 3           && Math.abs(player.x - MX) < hw) { enterRoom(toRoom, "down");  return; }
+        if (side === "right" && player.x > W - WALL - 3  && Math.abs(player.y - MY) < hw) { enterRoom(toRoom, "left");  return; }
+        if (side === "left"  && player.x < WALL + 3      && Math.abs(player.y - MY) < hw) { enterRoom(toRoom, "right"); return; }
+        if (side === "down"  && player.y > GH - WALL - 3 && Math.abs(player.x - MX) < hw) { enterRoom(toRoom, "up");    return; }
+        if (side === "up"    && player.y < WALL + 3      && Math.abs(player.x - MX) < hw) { enterRoom(toRoom, "down");  return; }
       }
     }
 
     function enterRoom(idx, fromSide) {
       roomIdx = idx;
-      if (fromSide === "left")  { player.x = WALL + P_SZ; player.y = MY; }
-      if (fromSide === "right") { player.x = W - WALL - P_SZ; player.y = MY; }
+      if (fromSide === "left")  { player.x = WALL + P_SZ;      player.y = MY; }
+      if (fromSide === "right") { player.x = W - WALL - P_SZ;  player.y = MY; }
       if (fromSide === "up")    { player.x = MX; player.y = WALL + P_SZ; }
       if (fromSide === "down")  { player.x = MX; player.y = GH - WALL - P_SZ; }
-      // Daemon teleports to corner and speeds up each room change
       if (daemon.active) {
         daemon.x = WALL + 8;
         daemon.y = WALL + 8;
-        daemon.speed = Math.min(daemon.speed + 0.3, 3.5);
+        daemon.speed = Math.min(daemon.speed + 0.3, 4.0);
       }
     }
 
@@ -241,7 +338,6 @@ export default function GamePage() {
     function update() {
       if (phase !== "playing") return;
 
-      // Countdown timer (1 tick per second)
       const now = performance.now();
       if (now - lastTick >= 1000) {
         lastTick = now;
@@ -253,7 +349,6 @@ export default function GamePage() {
         }
       }
 
-      // Player movement
       let mx = 0, my = 0;
       if (keys["ArrowLeft"]  || keys["a"] || keys["A"]) mx -= 1;
       if (keys["ArrowRight"] || keys["d"] || keys["D"]) mx += 1;
@@ -267,7 +362,6 @@ export default function GamePage() {
       resolveWalls(walls);
       checkDoors();
 
-      // Enemy patrol
       const rs = roomStates[roomIdx];
       for (const e of rs.enemies) {
         if (e.axis === "x") {
@@ -279,7 +373,6 @@ export default function GamePage() {
         }
       }
 
-      // Enemy collision (with invincibility window)
       if (iframes > 0) {
         iframes--;
       } else {
@@ -294,7 +387,6 @@ export default function GamePage() {
         }
       }
 
-      // Treasure pickup
       const pr = pRect();
       for (const t of rs.treasures) {
         if (t.collected) continue;
@@ -304,14 +396,15 @@ export default function GamePage() {
         }
       }
 
-      // Win: all rooms cleared
-      if (roomStates.every(s => s.treasures.every(t => t.collected))) {
-        score += 200;
-        phase = "win";
+      // Check sector complete
+      const [sStart, sEnd] = SECTOR_RANGES[sectorIdx];
+      if (roomStates.slice(sStart, sEnd).every(s => s.treasures.every(t => t.collected))) {
+        score += 100;
+        if (sectorIdx === 2) { score += 500; phase = "win"; }
+        else                 { phase = "sectorComplete"; }
         return;
       }
 
-      // Daemon chase
       if (daemon.active) {
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
@@ -328,20 +421,16 @@ export default function GamePage() {
     function drawTitle(t) {
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, W, H);
-
       for (let y = 0; y < H; y += 3) {
         ctx.fillStyle = "rgba(0,255,160,0.012)";
         ctx.fillRect(0, y, W, 1);
       }
-
       ctx.textAlign = "center";
-
       ctx.fillStyle = DIM;
       ctx.font = "11px monospace";
       ctx.letterSpacing = "4px";
       ctx.fillText("3DZLABS PRESENTS", W / 2, 148);
       ctx.letterSpacing = "0px";
-
       const art = [
         " ██████╗  █████╗ ███████╗███╗   ███╗ ██████╗ ███╗   ██╗",
         " ██╔══██╗██╔══██╗██╔════╝████╗ ████║██╔═══██╗████╗  ██║",
@@ -354,17 +443,51 @@ export default function GamePage() {
       ctx.fillStyle = GREEN;
       ctx.shadowColor = GREEN;
       ctx.shadowBlur = 10;
-      for (let i = 0; i < art.length; i++) {
-        ctx.fillText(art[i], W / 2, 210 + i * 19);
-      }
+      for (let i = 0; i < art.length; i++) ctx.fillText(art[i], W / 2, 210 + i * 19);
       ctx.shadowBlur = 0;
-
       if (Math.floor(t / 520) % 2) {
         ctx.fillStyle = GREEN;
         ctx.font = "13px monospace";
         ctx.shadowColor = GREEN;
         ctx.shadowBlur = 8;
         ctx.fillText("PRESS ENTER TO INITIALIZE", W / 2, 380);
+        ctx.shadowBlur = 0;
+      }
+      ctx.textAlign = "left";
+      ctx.shadowColor = "transparent";
+    }
+
+    // ── Sector complete screen ─────────────────────────────────────────────
+    function drawSectorComplete(t) {
+      ctx.fillStyle = "rgba(3,5,15,0.92)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = "center";
+
+      ctx.fillStyle  = GREEN;
+      ctx.font       = "bold 40px monospace";
+      ctx.shadowColor = GREEN;
+      ctx.shadowBlur  = 28;
+      ctx.fillText("SECTOR COMPLETE", W / 2, H / 2 - 70);
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = DIM;
+      ctx.font = "14px monospace";
+      ctx.fillText(`SECTOR ${sectorIdx + 1} CLEARED  ·  +100 BONUS`, W / 2, H / 2 - 20);
+      ctx.fillText(`SCORE  ${String(score).padStart(6, "0")}`, W / 2, H / 2 + 14);
+
+      ctx.fillStyle = "#00cc7a88";
+      ctx.font = "11px monospace";
+      ctx.fillText(
+        `NEXT: SECTOR ${sectorIdx + 2}  ·  ${SECTOR_TIMERS[sectorIdx + 1]}s TIMER  ·  ${sectorIdx + 1 === 1 ? "MEDIUM" : "HARD"} DIFFICULTY`,
+        W / 2, H / 2 + 50
+      );
+
+      if (Math.floor(t / 520) % 2) {
+        ctx.fillStyle = GREEN;
+        ctx.font = "13px monospace";
+        ctx.shadowColor = GREEN;
+        ctx.shadowBlur = 8;
+        ctx.fillText("PRESS ENTER TO CONTINUE", W / 2, H / 2 + 90);
         ctx.shadowBlur = 0;
       }
 
@@ -376,23 +499,20 @@ export default function GamePage() {
     function draw() {
       const t = Date.now();
 
-      if (phase === "title") { drawTitle(t); return; }
+      if (phase === "title")           { drawTitle(t); return; }
+      if (phase === "sectorComplete")  { drawSectorComplete(t); return; }
 
-      // Full background
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, W, H);
 
       drawHUD(t);
 
-      // Game world offset by HUD height
       ctx.save();
       ctx.translate(0, HUD_H);
 
-      // Floor
       ctx.fillStyle = SURFACE;
       ctx.fillRect(0, 0, W, GH);
 
-      // Subtle scanlines
       for (let y = 0; y < GH; y += 3) {
         ctx.fillStyle = "rgba(0,255,160,0.016)";
         ctx.fillRect(0, y, W, 1);
@@ -406,10 +526,10 @@ export default function GamePage() {
 
       ctx.restore();
 
-      // Screen-space overlays
-      if (timer > 0 && timer <= 30 && !daemon.active) drawWarning(t);
-      if (phase === "gameover") drawOverlay("GAME OVER",  RED,   `SCORE  ${String(score).padStart(6,"0")}`, "PRESS [R] TO RESTART");
-      if (phase === "win")      drawOverlay("ESCAPED!",   GREEN, `SCORE  ${String(score).padStart(6,"0")}  +200 BONUS`, "PRESS [R] TO PLAY AGAIN");
+      const warnAt = Math.ceil(SECTOR_TIMERS[sectorIdx] * 0.4);
+      if (timer > 0 && timer <= warnAt && !daemon.active) drawWarning(t);
+      if (phase === "gameover") drawOverlay("GAME OVER", RED,   `SCORE  ${String(score).padStart(6,"0")}`, "PRESS [R] TO RESTART");
+      if (phase === "win")      drawOverlay("ESCAPED!",  GREEN, `SCORE  ${String(score).padStart(6,"0")}  +500 BONUS`, "PRESS [R] TO PLAY AGAIN");
     }
 
     // ── HUD ─────────────────────────────────────────────────────────────────
@@ -420,7 +540,6 @@ export default function GamePage() {
       ctx.lineWidth = 1;
       ctx.strokeRect(0.5, 0.5, W - 1, HUD_H - 1);
 
-      // Vertical dividers
       ctx.strokeStyle = "rgba(0,255,160,0.18)";
       [W/2 - 115, W/2 + 105].forEach(lx => {
         ctx.beginPath(); ctx.moveTo(lx, 10); ctx.lineTo(lx, HUD_H - 10); ctx.stroke();
@@ -429,29 +548,29 @@ export default function GamePage() {
       const rs  = roomStates[roomIdx];
       const col = rs.treasures.filter(x => x.collected).length;
       const tot = rs.treasures.length;
-      const timerColor = (timer <= 30 && Math.floor(t / 350) % 2) ? RED : (timer <= 30 ? "#ff8040" : GREEN);
+      const warnAt = Math.ceil(SECTOR_TIMERS[sectorIdx] * 0.4);
+      const timerColor = (timer <= warnAt && Math.floor(t / 350) % 2) ? RED : (timer <= warnAt ? "#ff8040" : GREEN);
 
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "left";
 
-      // Left panel: score + lives
       ctx.fillStyle = GREEN;
       ctx.fillText(`SCORE  ${String(score).padStart(6, "0")}`, 16, 24);
       ctx.fillStyle = lives <= 1 ? RED : GREEN;
       ctx.fillText(`LIVES  ${"♥".repeat(lives)}${"♡".repeat(Math.max(0, 3 - lives))}`, 16, 46);
 
-      // Centre panel: timer + loot
       ctx.textAlign = "center";
       ctx.fillStyle = timerColor;
       ctx.fillText(`TIME  ${String(timer).padStart(3, "0")}s`, W / 2, 24);
       ctx.fillStyle = col === tot ? GREEN : DIM;
       ctx.fillText(`LOOT  ${col} / ${tot}`, W / 2, 46);
 
-      // Right panel: room name + number
+      const localRoom = roomIdx - SECTOR_RANGES[sectorIdx][0];
+      ctx.textAlign = "right";
       ctx.fillStyle = DIM;
-      ctx.fillText(ROOMS[roomIdx].name, W - 80, 24);
+      ctx.fillText(ROOMS[roomIdx].name, W - 16, 24);
       ctx.fillStyle = GREEN;
-      ctx.fillText(`ROOM  ${roomIdx + 1} / 3`, W - 80, 46);
+      ctx.fillText(`SEC ${sectorIdx + 1}/3  RM ${localRoom + 1}/3`, W - 16, 46);
 
       ctx.textAlign = "left";
     }
@@ -461,20 +580,17 @@ export default function GamePage() {
       const walls = buildWalls(roomIdx);
       const room  = ROOMS[roomIdx];
 
-      // Grid lines
       ctx.strokeStyle = "rgba(0,255,160,0.05)";
       ctx.lineWidth = 0.5;
       for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GH); ctx.stroke(); }
       for (let y = 0; y < GH; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-      // Wall blocks
       for (const w of walls) {
         ctx.fillStyle = "#0d2619";
         ctx.fillRect(w.x, w.y, w.w, w.h);
         ctx.strokeStyle = GREEN;
         ctx.lineWidth = 1;
         ctx.strokeRect(w.x, w.y, w.w, w.h);
-        // Hatch decoration (capped to keep it fast)
         ctx.strokeStyle = "rgba(0,255,160,0.10)";
         ctx.lineWidth = 0.5;
         const steps = Math.min(Math.max(w.w, w.h), 80);
@@ -486,14 +602,13 @@ export default function GamePage() {
         }
       }
 
-      // Door glows + arrows
       const pulse = Math.sin(t / 600) * 0.12 + 0.18;
       for (const exit of room.exits) {
         let dx, dy, dw, dh;
-        if (exit.side === "left")  { dx = 0;        dy = MY - DOOR_W/2; dw = WALL;   dh = DOOR_W; }
-        if (exit.side === "right") { dx = W - WALL;  dy = MY - DOOR_W/2; dw = WALL;   dh = DOOR_W; }
-        if (exit.side === "up")    { dx = MX - DOOR_W/2; dy = 0;         dw = DOOR_W; dh = WALL;   }
-        if (exit.side === "down")  { dx = MX - DOOR_W/2; dy = GH - WALL; dw = DOOR_W; dh = WALL;   }
+        if (exit.side === "left")  { dx = 0;           dy = MY - DOOR_W/2; dw = WALL;   dh = DOOR_W; }
+        if (exit.side === "right") { dx = W - WALL;    dy = MY - DOOR_W/2; dw = WALL;   dh = DOOR_W; }
+        if (exit.side === "up")    { dx = MX-DOOR_W/2; dy = 0;             dw = DOOR_W; dh = WALL;   }
+        if (exit.side === "down")  { dx = MX-DOOR_W/2; dy = GH - WALL;     dw = DOOR_W; dh = WALL;   }
         ctx.fillStyle = `rgba(0,255,160,${pulse})`;
         ctx.fillRect(dx, dy, dw, dh);
         ctx.strokeStyle = GREEN;
@@ -529,7 +644,6 @@ export default function GamePage() {
         ctx.fill();
         ctx.stroke();
         ctx.shadowBlur = 0;
-        // Sparkle centre
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(tr.x - 1, tr.y - 1, 3, 3);
       }
@@ -542,18 +656,14 @@ export default function GamePage() {
         const s = E_SZ / 2;
         ctx.strokeStyle = "#ff3060";
         ctx.lineWidth   = 1.5;
-        // Outer box
         ctx.strokeRect(e.x - s, e.y - s, E_SZ, E_SZ);
-        // X mark
         ctx.beginPath();
         ctx.moveTo(e.x - s + 4, e.y - s + 4); ctx.lineTo(e.x + s - 4, e.y + s - 4);
         ctx.moveTo(e.x + s - 4, e.y - s + 4); ctx.lineTo(e.x - s + 4, e.y + s - 4);
         ctx.stroke();
-        // Red "eyes"
         ctx.fillStyle = "#ff3060";
         ctx.fillRect(e.x - 5, e.y - 4, 3, 3);
         ctx.fillRect(e.x + 2, e.y - 4, 3, 3);
-        // Direction pip
         const pipX = e.axis === "x" ? e.x + (e.dir > 0 ? s + 3 : -s - 5) : e.x;
         const pipY = e.axis === "y" ? e.y + (e.dir > 0 ? s + 3 : -s - 5) : e.y;
         ctx.fillRect(pipX, pipY, 2, 2);
@@ -564,32 +674,21 @@ export default function GamePage() {
     function drawDaemon(t) {
       const s     = D_SZ / 2;
       const pulse = Math.sin(t / 180) * 0.5 + 0.5;
-
-      // Outer glow
       ctx.shadowColor = "#ff0050";
       ctx.shadowBlur  = 22 + pulse * 16;
-
-      // Body
       ctx.strokeStyle = `rgb(255,${Math.floor(pulse * 64)},80)`;
       ctx.lineWidth   = 3;
       ctx.strokeRect(daemon.x - s, daemon.y - s, D_SZ, D_SZ);
-
-      // Inner cross
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(daemon.x - s, daemon.y); ctx.lineTo(daemon.x + s, daemon.y);
       ctx.moveTo(daemon.x, daemon.y - s); ctx.lineTo(daemon.x, daemon.y + s);
       ctx.stroke();
-
-      // Eyes
       ctx.fillStyle = "#ff0050";
       ctx.fillRect(daemon.x - 9, daemon.y - 7, 7, 7);
       ctx.fillRect(daemon.x + 2, daemon.y - 7, 7, 7);
-
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
-
-      // Label above
       ctx.fillStyle = "#ff0050";
       ctx.font = "bold 8px monospace";
       ctx.textAlign = "center";
@@ -599,32 +698,25 @@ export default function GamePage() {
 
     // ── Player ──────────────────────────────────────────────────────────────
     function drawPlayer(t) {
-      // Blink during invincibility
       if (iframes > 0 && Math.floor(iframes / 5) % 2 === 0) return;
-
       const s = P_SZ / 2;
       ctx.shadowColor = GREEN;
       ctx.shadowBlur  = 12;
       ctx.strokeStyle = GREEN;
       ctx.lineWidth   = 2;
       ctx.strokeRect(player.x - s, player.y - s, P_SZ, P_SZ);
-
-      // Antenna
       ctx.beginPath();
       ctx.moveTo(player.x, player.y - s);
       ctx.lineTo(player.x, player.y - s - 7);
       ctx.stroke();
       ctx.fillStyle = GREEN;
       ctx.fillRect(player.x - 2, player.y - s - 9, 4, 4);
-
-      // Core
       ctx.fillRect(player.x - 2, player.y - 2, 4, 4);
-
       ctx.shadowBlur  = 0;
       ctx.shadowColor = "transparent";
     }
 
-    // ── Warning flash (timer ≤ 30) ──────────────────────────────────────────
+    // ── Warning flash ───────────────────────────────────────────────────────
     function drawWarning(t) {
       if (Math.floor(t / 420) % 2) return;
       ctx.save();
@@ -646,53 +738,36 @@ export default function GamePage() {
     function drawOverlay(title, titleColor, sub, hint) {
       ctx.fillStyle = "rgba(3,5,15,0.90)";
       ctx.fillRect(0, 0, W, H);
-
       ctx.textAlign = "center";
-
       ctx.fillStyle  = titleColor;
       ctx.font       = "bold 54px monospace";
       ctx.shadowColor = titleColor;
       ctx.shadowBlur  = 24;
       ctx.fillText(title, W / 2, H / 2 - 44);
       ctx.shadowBlur = 0;
-
       ctx.fillStyle = GREEN;
       ctx.font      = "16px monospace";
       ctx.fillText(sub, W / 2, H / 2 + 10);
-
       ctx.fillStyle = DIM;
       ctx.font      = "13px monospace";
       ctx.fillText(hint, W / 2, H / 2 + 48);
-
       ctx.textAlign = "left";
       ctx.shadowColor = "transparent";
     }
 
     // ── Restart ─────────────────────────────────────────────────────────────
     function restart() {
-      phase    = "playing";
-      roomIdx  = 0;
-      score    = 0;
-      lives    = 3;
-      timer    = 60;
-      lastTick = performance.now();
-      iframes  = 0;
-      player.x = WALL + 34;
-      player.y = MY;
-      daemon.active = false;
-      daemon.speed  = 1.1;
-      daemon.x      = 0;
-      daemon.y      = 0;
+      phase      = "playing";
+      sectorIdx  = 0;
+      score      = 0;
+      lives      = 3;
       roomStates = makeRoomStates();
+      enterSector(0);
     }
 
     // ── Game loop ───────────────────────────────────────────────────────────
     let raf;
-    function loop() {
-      update();
-      draw();
-      raf = requestAnimationFrame(loop);
-    }
+    function loop() { update(); draw(); raf = requestAnimationFrame(loop); }
     raf = requestAnimationFrame(loop);
 
     return () => {
@@ -707,7 +782,7 @@ export default function GamePage() {
   return (
     <main className="min-h-screen bg-[#03050f] flex flex-col items-center justify-center py-8 px-4">
       <div className="mb-3 font-mono text-[#00ffa0] text-xs tracking-widest text-center">
-        DUNGEON.EXE &nbsp;·&nbsp; MOVE: WASD / ARROW KEYS &nbsp;·&nbsp; COLLECT ALL ◆ BEFORE THE DAEMON ARRIVES
+        DAEMON.EXE &nbsp;·&nbsp; MOVE: WASD / ARROW KEYS &nbsp;·&nbsp; 3 SECTORS · 9 ROOMS · COLLECT ALL ◆ BEFORE THE DAEMON ARRIVES
       </div>
 
       <canvas
