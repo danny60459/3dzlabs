@@ -103,7 +103,7 @@ export default function ToolsSection() {
       </div>
 
       {/* ── Category pills ───────────────────────────────────────────────── */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex flex-wrap gap-2 mb-8">
         <button
           onClick={() => setCategory(null)}
           className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
