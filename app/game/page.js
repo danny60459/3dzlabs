@@ -109,11 +109,11 @@ export default function GamePage() {
     const ctx = canvas.getContext("2d");
 
     // ── Mutable game state (plain vars inside closure) ──────────────────────
-    let phase    = "playing";   // "playing" | "gameover" | "win"
+    let phase    = "title";     // "title" | "playing" | "gameover" | "win"
     let roomIdx  = 0;
     let score    = 0;
     let lives    = 3;
-    let timer    = 120;
+    let timer    = 60;
     let lastTick = performance.now();
     let iframes  = 0;           // invincibility frames after enemy hit
 
@@ -126,21 +126,25 @@ export default function GamePage() {
 
     function makeRoomStates() {
       return ROOMS.map(r => ({
-        enemies:   r.enemyDefs.map(e => ({ ...e, dir: 1 })),
+        enemies:   r.enemyDefs.map(e => ({ ...e, dir: 1, speed: e.speed * 1.4 })),
         treasures: r.treasureDefs.map(t => ({ ...t, collected: false })),
       }));
     }
 
     // ── Input ──────────────────────────────────────────────────────────────
     const keys = {};
-    const onDown = e => { keys[e.key] = true; };
-    const onUp   = e => { keys[e.key] = false; };
-    const onR    = e => {
+    const onDown  = e => { keys[e.key] = true; };
+    const onUp    = e => { keys[e.key] = false; };
+    const onR     = e => {
       if ((e.key === "r" || e.key === "R") && phase !== "playing") restart();
+    };
+    const onEnter = e => {
+      if (e.key === "Enter" && phase === "title") { phase = "playing"; lastTick = performance.now(); }
     };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup",   onUp);
     window.addEventListener("keydown", onR);
+    window.addEventListener("keydown", onEnter);
 
     // ── Geometry helpers ───────────────────────────────────────────────────
     function overlap(a, b) {
@@ -320,9 +324,59 @@ export default function GamePage() {
       }
     }
 
+    // ── Title screen ───────────────────────────────────────────────────────
+    function drawTitle(t) {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+
+      for (let y = 0; y < H; y += 3) {
+        ctx.fillStyle = "rgba(0,255,160,0.012)";
+        ctx.fillRect(0, y, W, 1);
+      }
+
+      ctx.textAlign = "center";
+
+      ctx.fillStyle = DIM;
+      ctx.font = "11px monospace";
+      ctx.letterSpacing = "4px";
+      ctx.fillText("3DZLABS PRESENTS", W / 2, 148);
+      ctx.letterSpacing = "0px";
+
+      const art = [
+        " ██████╗  █████╗ ███████╗███╗   ███╗ ██████╗ ███╗   ██╗",
+        " ██╔══██╗██╔══██╗██╔════╝████╗ ████║██╔═══██╗████╗  ██║",
+        " ██║  ██║███████║█████╗  ██╔████╔██║██║   ██║██╔██╗ ██║",
+        " ██║  ██║██╔══██║██╔══╝  ██║╚██╔╝██║██║   ██║██║╚██╗██║",
+        " ██████╔╝██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝██║ ╚████║",
+        " ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝",
+      ];
+      ctx.font = "11px monospace";
+      ctx.fillStyle = GREEN;
+      ctx.shadowColor = GREEN;
+      ctx.shadowBlur = 10;
+      for (let i = 0; i < art.length; i++) {
+        ctx.fillText(art[i], W / 2, 210 + i * 19);
+      }
+      ctx.shadowBlur = 0;
+
+      if (Math.floor(t / 520) % 2) {
+        ctx.fillStyle = GREEN;
+        ctx.font = "13px monospace";
+        ctx.shadowColor = GREEN;
+        ctx.shadowBlur = 8;
+        ctx.fillText("PRESS ENTER TO INITIALIZE", W / 2, 380);
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.textAlign = "left";
+      ctx.shadowColor = "transparent";
+    }
+
     // ── Draw ───────────────────────────────────────────────────────────────
     function draw() {
       const t = Date.now();
+
+      if (phase === "title") { drawTitle(t); return; }
 
       // Full background
       ctx.fillStyle = BG;
@@ -620,7 +674,7 @@ export default function GamePage() {
       roomIdx  = 0;
       score    = 0;
       lives    = 3;
-      timer    = 120;
+      timer    = 60;
       lastTick = performance.now();
       iframes  = 0;
       player.x = WALL + 34;
@@ -646,6 +700,7 @@ export default function GamePage() {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup",   onUp);
       window.removeEventListener("keydown", onR);
+      window.removeEventListener("keydown", onEnter);
     };
   }, []);
 
