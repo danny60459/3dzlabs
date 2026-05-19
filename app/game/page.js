@@ -215,7 +215,7 @@ export default function GamePage() {
     let audioCtx    = null;
 
     const player = { x: WALL + 34, y: MY };
-    const daemon  = { x: 0, y: 0, active: false, speed: 1.1 };
+    const daemon  = { x: 0, y: 0, active: false, speed: 1.1, spawnAge: 0 };
 
     let roomStates = makeRoomStates();
 
@@ -236,8 +236,9 @@ export default function GamePage() {
       player.y      = MY;
       daemon.active = false;
       daemon.speed  = 1.1 + idx * 0.35;
-      daemon.x      = 0;
-      daemon.y      = 0;
+      daemon.x        = 0;
+      daemon.y        = 0;
+      daemon.spawnAge = 0;
     }
 
     // ── Audio ──────────────────────────────────────────────────────────────
@@ -484,9 +485,10 @@ export default function GamePage() {
         if (timer > 0) timer--;
         if (timer > 0 && timer <= 15 && !daemon.active) sndWarnPulse();
         if (timer === 0 && !daemon.active) {
-          daemon.active = true;
-          daemon.x = WALL + 8;
-          daemon.y = WALL + 8;
+          daemon.active   = true;
+          daemon.x        = WALL + 8;
+          daemon.y        = WALL + 8;
+          daemon.spawnAge = 0;
           sndDaemonSpawn();
         }
       }
@@ -556,6 +558,7 @@ export default function GamePage() {
       }
 
       if (daemon.active) {
+        if (daemon.spawnAge < 240) daemon.spawnAge++;
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -828,30 +831,140 @@ export default function GamePage() {
       }
     }
 
-    // ── Daemon ──────────────────────────────────────────────────────────────
+    // ── Daemon skull ────────────────────────────────────────────────────────
     function drawDaemon(t) {
-      const s     = D_SZ / 2;
-      const pulse = Math.sin(t / 180) * 0.5 + 0.5;
-      ctx.shadowColor = "#ff0050";
-      ctx.shadowBlur  = 22 + pulse * 16;
-      ctx.strokeStyle = `rgb(255,${Math.floor(pulse * 64)},80)`;
-      ctx.lineWidth   = 3;
-      ctx.strokeRect(daemon.x - s, daemon.y - s, D_SZ, D_SZ);
-      ctx.lineWidth = 1.5;
+      // Ease-out cubic spawn growth over first 55 frames
+      const sp = Math.min(daemon.spawnAge / 55, 1);
+      const sc = 1 - Math.pow(1 - sp, 3);
+      if (sc < 0.01) return;
+
+      const cx = daemon.x;
+      const cy = daemon.y;
+      const r  = 28;
+      const pulse   = Math.sin(t / 220) * 0.5 + 0.5;
+      const breathe = 1 + pulse * 0.04;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(sc * breathe, sc * breathe);
+
+      // ── Cranium ─────────────────────────────────────────────────────────
+      ctx.shadowColor = "#ff0030";
+      ctx.shadowBlur  = 28 + pulse * 22;
+      ctx.fillStyle   = `rgb(${Math.floor(215 + pulse * 40)},${Math.floor(pulse * 28)},38)`;
       ctx.beginPath();
-      ctx.moveTo(daemon.x - s, daemon.y); ctx.lineTo(daemon.x + s, daemon.y);
-      ctx.moveTo(daemon.x, daemon.y - s); ctx.lineTo(daemon.x, daemon.y + s);
+      ctx.moveTo(-r * 0.68,  r * 0.18);
+      ctx.quadraticCurveTo(-r * 0.98, -r * 0.12, -r * 0.74, -r * 0.70);
+      ctx.quadraticCurveTo(-r * 0.30, -r * 1.10,         0, -r * 1.10);
+      ctx.quadraticCurveTo( r * 0.30, -r * 1.10,  r * 0.74, -r * 0.70);
+      ctx.quadraticCurveTo( r * 0.98, -r * 0.12,  r * 0.68,  r * 0.18);
+      ctx.lineTo( r * 0.52,  r * 0.18);
+      ctx.lineTo( r * 0.50,  r * 0.60);
+      ctx.lineTo(-r * 0.50,  r * 0.60);
+      ctx.lineTo(-r * 0.52,  r * 0.18);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(255,${Math.floor(55 + pulse * 65)},55,0.88)`;
+      ctx.lineWidth   = 1.8;
       ctx.stroke();
-      ctx.fillStyle = "#ff0050";
-      ctx.fillRect(daemon.x - 9, daemon.y - 7, 7, 7);
-      ctx.fillRect(daemon.x + 2, daemon.y - 7, 7, 7);
-      ctx.shadowBlur = 0;
+
+      // ── Eye sockets ─────────────────────────────────────────────────────
+      ctx.shadowBlur  = 0;
+      const eyeY = -r * 0.26;
+      const eRX  =  r * 0.235;
+      const eRY  =  r * 0.285;
+
+      ctx.fillStyle = "#020408";
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.335, eyeY, eRX, eRY, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse( r * 0.335, eyeY, eRX, eRY, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ember glow rings
+      ctx.strokeStyle = `rgba(255,55,55,${0.28 + pulse * 0.52})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.335, eyeY, eRX * 0.55, eRY * 0.55, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse( r * 0.335, eyeY, eRX * 0.55, eRY * 0.55, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Burning cores
+      ctx.fillStyle = `rgba(255,85,35,${0.45 + pulse * 0.55})`;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.335, eyeY, eRX * 0.22, eRY * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse( r * 0.335, eyeY, eRX * 0.22, eRY * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ── Nose cavity ─────────────────────────────────────────────────────
+      ctx.fillStyle = "#020408";
+      ctx.beginPath();
+      ctx.moveTo(        0,  r * 0.01);
+      ctx.lineTo(-r * 0.13,  r * 0.19);
+      ctx.lineTo( r * 0.13,  r * 0.19);
+      ctx.closePath();
+      ctx.fill();
+
+      // ── Mouth line ──────────────────────────────────────────────────────
+      ctx.strokeStyle = "#010306";
+      ctx.lineWidth   = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.50, r * 0.19);
+      ctx.lineTo( r * 0.50, r * 0.19);
+      ctx.stroke();
+
+      // ── Teeth (4 downward triangles) ────────────────────────────────────
+      const tTY = r * 0.20;
+      const tBY = r * 0.53;
+      const tHW = r * 0.10;
+      const tXs = [-r * 0.35, -r * 0.12, r * 0.12, r * 0.35];
+
+      ctx.fillStyle = `rgba(255,${Math.floor(175 + pulse * 80)},110,0.94)`;
+      for (const tx of tXs) {
+        ctx.beginPath();
+        ctx.moveTo(tx - tHW, tTY);
+        ctx.lineTo(tx,       tBY);
+        ctx.lineTo(tx + tHW, tTY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(80,0,0,0.65)";
+        ctx.lineWidth   = 0.8;
+        ctx.stroke();
+      }
+
+      // Tooth-gap cuts
+      ctx.strokeStyle = "#010306";
+      ctx.lineWidth   = 2;
+      for (const gx of [-r * 0.235, 0, r * 0.235]) {
+        ctx.beginPath();
+        ctx.moveTo(gx, tTY);
+        ctx.lineTo(gx, tBY * 0.80);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+      ctx.shadowBlur  = 0;
       ctx.shadowColor = "transparent";
-      ctx.fillStyle = "#ff0050";
-      ctx.font = "bold 8px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("DAEMON", daemon.x, daemon.y - s - 5);
-      ctx.textAlign = "left";
+
+      // DAEMON label fades in after halfway through spawn
+      if (sp > 0.5) {
+        const a = Math.min(1, (sp - 0.5) * 2);
+        ctx.shadowColor = "#ff0030";
+        ctx.shadowBlur  = 7;
+        ctx.fillStyle   = `rgba(255,0,55,${a * (0.65 + pulse * 0.35)})`;
+        ctx.font        = "bold 9px monospace";
+        ctx.textAlign   = "center";
+        ctx.fillText("DAEMON", cx, cy - r * sc * breathe - 8);
+        ctx.shadowBlur  = 0;
+        ctx.shadowColor = "transparent";
+        ctx.textAlign   = "left";
+      }
     }
 
     // ── Player ──────────────────────────────────────────────────────────────
