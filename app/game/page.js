@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ─── Canvas / layout constants ────────────────────────────────────────────────
 const W      = 800;
@@ -1068,92 +1068,250 @@ export default function GamePage() {
     };
   }, []);
 
-  const dpadHandlers = (key) => ({
-    onPointerDown:   (e) => { e.preventDefault(); keysRef.current[key] = true;  },
-    onPointerUp:     ()  => { keysRef.current[key] = false; },
-    onPointerLeave:  ()  => { keysRef.current[key] = false; },
-    onPointerCancel: ()  => { keysRef.current[key] = false; },
-  });
+  // ── Orientation & side state ───────────────────────────────────────────────
+  const [isLandscape,  setIsLandscape]  = useState(false);
+  const [padSide,      setPadSide]      = useState("right");
+  const [stickPos,     setStickPos]     = useState({ x: 0, y: 0 });
+  const [stickActive,  setStickActive]  = useState(false);
+  const activePtrId = useRef(null);
 
-  const btnBase = {
-    background:               "rgba(0,255,160,0.12)",
-    border:                   "1px solid rgba(0,255,160,0.55)",
-    color:                    "#00ffa0",
-    fontFamily:               "monospace",
-    fontSize:                 "18px",
-    width:                    "48px",
-    height:                   "48px",
-    display:                  "flex",
-    alignItems:               "center",
-    justifyContent:           "center",
-    borderRadius:             "4px",
-    boxShadow:                "0 0 10px rgba(0,255,160,0.3), inset 0 0 6px rgba(0,255,160,0.08)",
-    cursor:                   "pointer",
-    userSelect:               "none",
-    touchAction:              "none",
-    WebkitTapHighlightColor:  "transparent",
-    flexShrink:               0,
+  useEffect(() => {
+    const check = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // ── Joystick helpers ───────────────────────────────────────────────────────
+  const DEAD_ZONE = 16;
+  const MAX_DIST  = 58;
+
+  const clampStick = (dx, dy) => {
+    const d = Math.sqrt(dx * dx + dy * dy);
+    return d <= MAX_DIST ? { x: dx, y: dy } : { x: (dx / d) * MAX_DIST, y: (dy / d) * MAX_DIST };
+  };
+
+  const pushDirection = (dx, dy) => {
+    const keys = keysRef.current;
+    keys["ArrowUp"]    = false;
+    keys["ArrowDown"]  = false;
+    keys["ArrowLeft"]  = false;
+    keys["ArrowRight"] = false;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < DEAD_ZONE) return;
+    const deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+    if      (deg < 22.5  || deg >= 337.5) { keys["ArrowRight"] = true; }
+    else if (deg < 67.5)                  { keys["ArrowRight"] = true; keys["ArrowDown"]  = true; }
+    else if (deg < 112.5)                 { keys["ArrowDown"]  = true; }
+    else if (deg < 157.5)                 { keys["ArrowLeft"]  = true; keys["ArrowDown"]  = true; }
+    else if (deg < 202.5)                 { keys["ArrowLeft"]  = true; }
+    else if (deg < 247.5)                 { keys["ArrowLeft"]  = true; keys["ArrowUp"]    = true; }
+    else if (deg < 292.5)                 { keys["ArrowUp"]    = true; }
+    else                                  { keys["ArrowRight"] = true; keys["ArrowUp"]    = true; }
+  };
+
+  const clearStick = () => {
+    activePtrId.current = null;
+    setStickPos({ x: 0, y: 0 });
+    setStickActive(false);
+    const keys = keysRef.current;
+    keys["ArrowUp"] = keys["ArrowDown"] = keys["ArrowLeft"] = keys["ArrowRight"] = false;
+  };
+
+  const getDelta = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return {
+      dx: e.clientX - (rect.left + rect.width  / 2),
+      dy: e.clientY - (rect.top  + rect.height / 2),
+    };
+  };
+
+  const onJoyDown = (e) => {
+    e.preventDefault();
+    if (activePtrId.current !== null) return;
+    activePtrId.current = e.pointerId;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const { dx, dy } = getDelta(e);
+    setStickPos(clampStick(dx, dy));
+    setStickActive(true);
+    pushDirection(dx, dy);
+  };
+
+  const onJoyMove = (e) => {
+    e.preventDefault();
+    if (e.pointerId !== activePtrId.current) return;
+    const { dx, dy } = getDelta(e);
+    setStickPos(clampStick(dx, dy));
+    pushDirection(dx, dy);
+  };
+
+  const onJoyUp = (e) => {
+    if (e.pointerId !== activePtrId.current) return;
+    clearStick();
+  };
+
+  // ── Control panel (joystick + swap button) ─────────────────────────────────
+  const ZONE = 168;
+
+  const controlPanel = (
+    <div style={{
+      display:        "flex",
+      flexDirection:  "column",
+      alignItems:     isLandscape ? (padSide === "right" ? "flex-start" : "flex-end") : "center",
+      justifyContent: "center",
+      gap:            "10px",
+      padding:        isLandscape ? "8px 12px" : "10px 8px 4px",
+      flexShrink:     0,
+    }}>
+      {/* Joystick zone */}
+      <div
+        onPointerDown={onJoyDown}
+        onPointerMove={onJoyMove}
+        onPointerUp={onJoyUp}
+        onPointerCancel={onJoyUp}
+        style={{
+          position:     "relative",
+          width:        `${ZONE}px`,
+          height:       `${ZONE}px`,
+          borderRadius: "50%",
+          background:   "rgba(0,255,160,0.05)",
+          border:       `1px solid rgba(0,255,160,${stickActive ? "0.55" : "0.28"})`,
+          boxShadow:    stickActive
+            ? "0 0 22px rgba(0,255,160,0.22), inset 0 0 28px rgba(0,255,160,0.07)"
+            : "0 0 12px rgba(0,255,160,0.10), inset 0 0 18px rgba(0,255,160,0.04)",
+          touchAction:  "none",
+          userSelect:   "none",
+          cursor:       "crosshair",
+          transition:   "border-color 0.1s, box-shadow 0.1s",
+        }}
+      >
+        {/* Cardinal hint arrows */}
+        {[
+          { lbl: "▲", s: { top:    "7px", left: "50%", transform: "translateX(-50%)" } },
+          { lbl: "▼", s: { bottom: "7px", left: "50%", transform: "translateX(-50%)" } },
+          { lbl: "◄", s: { left:   "7px", top:  "50%", transform: "translateY(-50%)" } },
+          { lbl: "►", s: { right:  "7px", top:  "50%", transform: "translateY(-50%)" } },
+        ].map(({ lbl, s }) => (
+          <span key={lbl} style={{
+            position:      "absolute",
+            color:         `rgba(0,255,160,${stickActive ? "0.18" : "0.30"})`,
+            fontSize:      "11px",
+            fontFamily:    "monospace",
+            pointerEvents: "none",
+            lineHeight:    1,
+            transition:    "color 0.1s",
+            ...s,
+          }}>{lbl}</span>
+        ))}
+
+        {/* Centre ring */}
+        <div style={{
+          position:      "absolute",
+          top: "50%", left: "50%",
+          transform:     "translate(-50%, -50%)",
+          width:         "8px",
+          height:        "8px",
+          borderRadius:  "50%",
+          border:        "1px solid rgba(0,255,160,0.35)",
+          pointerEvents: "none",
+        }} />
+
+        {/* Thumb nub */}
+        <div style={{
+          position:      "absolute",
+          top:           `calc(50% + ${stickPos.y}px)`,
+          left:          `calc(50% + ${stickPos.x}px)`,
+          transform:     "translate(-50%, -50%)",
+          width:         "36px",
+          height:        "36px",
+          borderRadius:  "50%",
+          background:    stickActive ? "rgba(0,255,160,0.28)" : "rgba(0,255,160,0.12)",
+          border:        `1.5px solid rgba(0,255,160,${stickActive ? "0.85" : "0.40"})`,
+          boxShadow:     stickActive
+            ? "0 0 20px rgba(0,255,160,0.65), 0 0 6px rgba(0,255,160,0.9)"
+            : "0 0 8px rgba(0,255,160,0.25)",
+          transition:    stickActive ? "none" : "all 0.18s cubic-bezier(0.22,1,0.36,1)",
+          pointerEvents: "none",
+        }} />
+      </div>
+
+      {/* Handedness swap button */}
+      <button
+        onClick={() => setPadSide(s => s === "right" ? "left" : "right")}
+        style={{
+          background:    "rgba(0,255,160,0.05)",
+          border:        "1px solid rgba(0,255,160,0.25)",
+          color:         "rgba(0,255,160,0.5)",
+          fontFamily:    "monospace",
+          fontSize:      "9px",
+          padding:       "5px 12px",
+          borderRadius:  "3px",
+          cursor:        "pointer",
+          letterSpacing: "2px",
+          touchAction:   "manipulation",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        {padSide === "right" ? "◄ LEFTY" : "RIGHTY ►"}
+      </button>
+    </div>
+  );
+
+  // ── Canvas sizing ──────────────────────────────────────────────────────────
+  const canvasStyle = {
+    display:        "block",
+    border:         "1px solid #00ffa0",
+    imageRendering: "pixelated",
+    maxWidth:       isLandscape ? `calc(100vw - ${ZONE + 48}px)` : "100%",
+    maxHeight:      isLandscape ? "100svh" : `calc(100svh - ${ZONE + 80}px)`,
+    width:          "auto",
+    height:         "auto",
+    touchAction:    "none",
   };
 
   return (
-    <main className="min-h-screen bg-[#03050f] flex flex-col items-center justify-center py-2 sm:py-8 px-2 sm:px-4">
-      <div className="mb-2 font-mono text-[#00ffa0] text-xs tracking-widest text-center">
-        DAEMON.EXE &nbsp;·&nbsp; WASD / ARROWS / D-PAD &nbsp;·&nbsp; 3 SECTORS · 9 ROOMS · COLLECT ALL ◆
-      </div>
-
-      {/* Canvas wrapper — relative so D-pad can overlay it */}
-      <div style={{ position: "relative", display: "inline-block", maxWidth: "100%", lineHeight: 0 }}>
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={560}
-          style={{
-            display:         "block",
-            border:          "1px solid #00ffa0",
-            imageRendering:  "pixelated",
-            maxWidth:        "100%",
-            maxHeight:       "calc(100svh - 110px)",
-            width:           "auto",
-            height:          "auto",
-            touchAction:     "none",
-          }}
-        />
-
-        {/* D-pad — bottom-left overlay */}
-        <div style={{
-          position:   "absolute",
-          bottom:     "14px",
-          left:       "14px",
-          display:    "grid",
-          gridTemplateColumns: "repeat(3, 48px)",
-          gridTemplateRows:    "repeat(3, 48px)",
-          gap:        "5px",
-          touchAction: "none",
-        }}>
-          {/* Row 1 — Up only */}
-          <div />
-          <button {...dpadHandlers("ArrowUp")}    style={btnBase}>▲</button>
-          <div />
-          {/* Row 2 — Left · centre pip · Right */}
-          <button {...dpadHandlers("ArrowLeft")}  style={btnBase}>◄</button>
-          <div style={{ ...btnBase, background: "rgba(0,255,160,0.04)", cursor: "default", boxShadow: "none", border: "1px solid rgba(0,255,160,0.18)" }} />
-          <button {...dpadHandlers("ArrowRight")} style={btnBase}>►</button>
-          {/* Row 3 — Down only */}
-          <div />
-          <button {...dpadHandlers("ArrowDown")}  style={btnBase}>▼</button>
-          <div />
+    <main style={{
+      minHeight:      "100svh",
+      background:     "#03050f",
+      display:        "flex",
+      flexDirection:  isLandscape ? "row" : "column",
+      alignItems:     "center",
+      justifyContent: "center",
+      padding:        isLandscape ? "4px" : "6px 4px",
+      gap:            isLandscape ? "0" : "0",
+      boxSizing:      "border-box",
+      overflow:       "hidden",
+    }}>
+      {/* Header — portrait only */}
+      {!isLandscape && (
+        <div style={{ marginBottom: "6px", fontFamily: "monospace", color: "#00ffa0", fontSize: "10px", letterSpacing: "3px", textAlign: "center" }}>
+          DAEMON.EXE &nbsp;·&nbsp; 3 SECTORS · 9 ROOMS · COLLECT ALL ◆
         </div>
-      </div>
+      )}
 
-      <div className="mt-2 font-mono text-[#00cc7a] text-xs text-center space-x-4">
-        <span>◆ LOOT</span>
-        <span>·</span>
-        <span>✕ ENEMIES (AVOID)</span>
-        <span>·</span>
-        <span>► EXITS</span>
-        <span>·</span>
-        <span>[R] RESTART</span>
-      </div>
+      {/* Landscape + left-hand: controls on the left */}
+      {isLandscape && padSide === "left" && controlPanel}
+
+      {/* Canvas */}
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={560}
+        style={canvasStyle}
+      />
+
+      {/* Landscape + right-hand (default): controls on the right */}
+      {isLandscape && padSide === "right" && controlPanel}
+
+      {/* Portrait: controls below canvas */}
+      {!isLandscape && controlPanel}
+
+      {/* Footer — portrait only */}
+      {!isLandscape && (
+        <div style={{ marginTop: "4px", fontFamily: "monospace", color: "#00cc7a", fontSize: "10px", textAlign: "center", letterSpacing: "1px" }}>
+          ◆ LOOT &nbsp;·&nbsp; ✕ AVOID &nbsp;·&nbsp; ► EXITS &nbsp;·&nbsp; [R] RESTART
+        </div>
+      )}
     </main>
   );
 }
