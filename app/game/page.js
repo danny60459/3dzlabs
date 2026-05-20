@@ -24,6 +24,14 @@ const E_SZ = 20;
 const T_SZ = 10;
 const D_SZ = 34;
 
+// ─── Player speed (logical px/frame — canvas coords are always 800×560 so this ─
+// ─── is identical on every device regardless of CSS scaling or devicePixelRatio) ─
+const P_SPEED = 3;
+
+// ─── Laser timing ─────────────────────────────────────────────────────────────
+const LASER_ON     = 1.5;   // seconds beam is active
+const LASER_PERIOD = 2.3;   // total cycle (1.5 on + 0.8 off)
+
 // ─── Sector config ────────────────────────────────────────────────────────────
 const SECTOR_TIMERS = [60, 45, 30];
 const SECTOR_RANGES = [[0, 3], [3, 6], [6, 9]];
@@ -45,6 +53,7 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 360, y: 130 }, { x: 615, y: 160 }, { x: 670, y: 400 }],
     exits: [{ side: "right", toRoom: 1 }],
+    lasers: [{ x1: 150, y1: 300, x2: 490, y2: 300, phase: 0 }],
   },
   {
     name: "S1-R2",
@@ -60,6 +69,7 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 100, y: 395 }, { x: 360, y: 250 }, { x: 650, y: 110 }],
     exits: [{ side: "left", toRoom: 0 }, { side: "right", toRoom: 2 }],
+    lasers: [{ x1: 350, y1: 125, x2: 350, y2: 310, phase: 0.8 }],
   },
   {
     name: "S1-R3",
@@ -77,6 +87,7 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 350, y: 110 }, { x: 110, y: 435 }, { x: 560, y: 130 }, { x: 680, y: 260 }],
     exits: [{ side: "left", toRoom: 1 }],
+    lasers: [{ x1: 500, y1: 120, x2: 500, y2: 280, phase: 1.2 }],
   },
 
   // ── SECTOR 2 · Medium ────────────────────────────────────────────────────
@@ -95,6 +106,10 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 160, y: 130 }, { x: 450, y: 130 }, { x: 300, y: 330 }, { x: 690, y: 170 }],
     exits: [{ side: "right", toRoom: 4 }],
+    lasers: [
+      { x1: 110, y1: 270, x2: 340, y2: 270, phase: 0 },
+      { x1: 390, y1: 82,  x2: 390, y2: 258, phase: 1.1 },
+    ],
   },
   {
     name: "S2-R2",
@@ -112,6 +127,10 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 90, y: 140 }, { x: 680, y: 430 }, { x: 300, y: 240 }, { x: 570, y: 310 }],
     exits: [{ side: "left", toRoom: 3 }, { side: "right", toRoom: 5 }],
+    lasers: [
+      { x1: 175, y1: 305, x2: 175, y2: 460, phase: 0.5 },
+      { x1: 270, y1: 200, x2: 495, y2: 200, phase: 1.4 },
+    ],
   },
   {
     name: "S2-R3",
@@ -131,6 +150,10 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 200, y: 80 }, { x: 400, y: 100 }, { x: 520, y: 450 }, { x: 720, y: 260 }, { x: 100, y: 400 }],
     exits: [{ side: "left", toRoom: 4 }],
+    lasers: [
+      { x1: 200, y1: 300, x2: 435, y2: 300, phase: 0.3 },
+      { x1: 560, y1: 325, x2: 560, y2: 460, phase: 1.2 },
+    ],
   },
 
   // ── SECTOR 3 · Hard ──────────────────────────────────────────────────────
@@ -151,6 +174,11 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 100, y: 430 }, { x: 390, y: 55 }, { x: 660, y: 150 }, { x: 610, y: 440 }, { x: 250, y: 290 }],
     exits: [{ side: "right", toRoom: 7 }],
+    lasers: [
+      { x1: 215, y1: 160, x2: 530, y2: 160, phase: 0 },
+      { x1: 556, y1: 95,  x2: 780, y2: 95,  phase: 0.7 },
+      { x1: 215, y1: 390, x2: 530, y2: 390, phase: 1.5 },
+    ],
   },
   {
     name: "S3-R2",
@@ -170,6 +198,11 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 90, y: 130 }, { x: 260, y: 300 }, { x: 680, y: 240 }, { x: 360, y: 450 }, { x: 540, y: 80 }],
     exits: [{ side: "left", toRoom: 6 }, { side: "right", toRoom: 8 }],
+    lasers: [
+      { x1: 140, y1: 205, x2: 390, y2: 205, phase: 0.2 },
+      { x1: 415, y1: 105, x2: 415, y2: 295, phase: 0.9 },
+      { x1: 250, y1: 385, x2: 395, y2: 385, phase: 1.6 },
+    ],
   },
   {
     name: "S3-R3",
@@ -190,6 +223,11 @@ const ROOMS = [
     ],
     treasureDefs: [{ x: 90, y: 80 }, { x: 420, y: 80 }, { x: 700, y: 430 }, { x: 250, y: 390 }, { x: 560, y: 460 }, { x: 680, y: 300 }],
     exits: [{ side: "left", toRoom: 7 }],
+    lasers: [
+      { x1: 175, y1: 135, x2: 470, y2: 135, phase: 0 },
+      { x1: 495, y1: 205, x2: 495, y2: 375, phase: 0.8 },
+      { x1: 335, y1: 295, x2: 470, y2: 295, phase: 1.4 },
+    ],
   },
 ];
 
@@ -216,7 +254,11 @@ export default function GamePage() {
     let audioCtx    = null;
 
     const player = { x: WALL + 34, y: MY };
-    const daemon  = { x: 0, y: 0, active: false, speed: 1.1, spawnAge: 0 };
+    const daemon  = { x: 0, y: 0, active: false, speed: 1.2, spawnAge: 0 };
+
+    let checkpoint        = null;  // { score, lives } saved on first S3 entry
+    let continueCountdown = 10;
+    let continueLastTick  = 0;
 
     let roomStates = makeRoomStates();
 
@@ -236,10 +278,13 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = 1.1 + idx * 0.35;
+      daemon.speed  = [1.2, 1.8, 2.4][idx];
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
+      if (idx === 2 && !checkpoint) {
+        checkpoint = { score, lives };
+      }
     }
 
     // ── Audio ──────────────────────────────────────────────────────────────
@@ -391,6 +436,7 @@ export default function GamePage() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         phase = "playing"; lastTick = performance.now();
       } else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
+        else if (phase === "continue")       { useContinue(); }
     };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup",   onUp);
@@ -477,7 +523,37 @@ export default function GamePage() {
     }
 
     // ── Update ─────────────────────────────────────────────────────────────
+    function triggerGameOver() {
+      if (sectorIdx === 2 && checkpoint && !checkpoint.used) {
+        phase = "continue"; continueCountdown = 10; continueLastTick = performance.now();
+      } else {
+        phase = "gameover";
+      }
+    }
+
+    function useContinue() {
+      checkpoint.used = true;
+      lives = 3;
+      const [s3Start, s3End] = SECTOR_RANGES[2];
+      for (let i = s3Start; i < s3End; i++) {
+        roomStates[i] = {
+          enemies:   ROOMS[i].enemyDefs.map(e => ({ ...e, dir: 1, speed: e.speed * 1.4 })),
+          treasures: ROOMS[i].treasureDefs.map(t => ({ ...t, collected: false })),
+        };
+      }
+      enterSector(2);
+      phase = "playing";
+    }
+
     function update() {
+      if (phase === "continue") {
+        const now = performance.now();
+        if (now - continueLastTick >= 1000) {
+          continueLastTick = now;
+          if (--continueCountdown <= 0) phase = "gameover";
+        }
+        return;
+      }
       if (phase !== "playing") return;
 
       const now = performance.now();
@@ -500,8 +576,9 @@ export default function GamePage() {
       if (keys["ArrowUp"]    || keys["w"] || keys["W"]) my -= 1;
       if (keys["ArrowDown"]  || keys["s"] || keys["S"]) my += 1;
       if (mx !== 0 && my !== 0) { mx *= 0.7071; my *= 0.7071; }
-      player.x += mx * 3;
-      player.y += my * 3;
+      const speedScale = canvas.width / 800;
+      player.x += (mx * P_SPEED) / speedScale;
+      player.y += (my * P_SPEED) / speedScale;
 
       const walls = buildWalls(roomIdx);
       resolveWalls(walls);
@@ -522,15 +599,30 @@ export default function GamePage() {
         iframes--;
       } else {
         const pr = pRect();
+        let hit = false;
         for (const e of rs.enemies) {
           if (overlap(pr, { x: e.x - E_SZ/2, y: e.y - E_SZ/2, w: E_SZ, h: E_SZ })) {
-            lives--;
-            iframes = 90;
-            shakeFrames = 14;
-            sndDeath();
-            if (lives <= 0) { phase = "gameover"; return; }
-            break;
+            hit = true; break;
           }
+        }
+        if (!hit) {
+          const tSec = performance.now() / 1000;
+          for (const L of (ROOMS[roomIdx].lasers ?? [])) {
+            const on = ((tSec + L.phase) % LASER_PERIOD) < LASER_ON;
+            if (!on) continue;
+            const horiz = L.y1 === L.y2;
+            const lr = horiz
+              ? { x: L.x1, y: L.y1 - 3, w: L.x2 - L.x1, h: 6 }
+              : { x: L.x1 - 3, y: L.y1, w: 6, h: L.y2 - L.y1 };
+            if (overlap(pr, lr)) { hit = true; break; }
+          }
+        }
+        if (hit) {
+          lives--;
+          iframes = 90;
+          shakeFrames = 14;
+          sndDeath();
+          if (lives <= 0) { triggerGameOver(); return; }
         }
       }
 
@@ -563,11 +655,12 @@ export default function GamePage() {
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        daemon.x += (dx / dist) * daemon.speed;
-        daemon.y += (dy / dist) * daemon.speed;
+        const dScale = canvas.width / 800;
+        daemon.x += (dx / dist) * daemon.speed / dScale;
+        daemon.y += (dy / dist) * daemon.speed / dScale;
         if (overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
           sndDeath(); shakeFrames = 22;
-          phase = "gameover";
+          triggerGameOver();
         }
       }
     }
@@ -582,7 +675,7 @@ export default function GamePage() {
       }
       ctx.textAlign = "center";
       ctx.fillStyle = DIM;
-      ctx.font = "11px monospace";
+      ctx.font = "14px monospace";
       ctx.letterSpacing = "4px";
       ctx.fillText("3DZLABS PRESENTS", W / 2, 148);
       ctx.letterSpacing = "0px";
@@ -594,18 +687,18 @@ export default function GamePage() {
         " ██████╔╝██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝██║ ╚████║",
         " ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝",
       ];
-      ctx.font = "11px monospace";
+      ctx.font = "14px monospace";
       ctx.fillStyle = GREEN;
       ctx.shadowColor = GREEN;
       ctx.shadowBlur = 10;
-      for (let i = 0; i < art.length; i++) ctx.fillText(art[i], W / 2, 210 + i * 19);
+      for (let i = 0; i < art.length; i++) ctx.fillText(art[i], W / 2, 210 + i * 24);
       ctx.shadowBlur = 0;
       if (Math.floor(t / 520) % 2) {
         ctx.fillStyle = GREEN;
-        ctx.font = "13px monospace";
+        ctx.font = "17px monospace";
         ctx.shadowColor = GREEN;
         ctx.shadowBlur = 8;
-        ctx.fillText("TAP  ·  PRESS ENTER  ·  TO START", W / 2, 380);
+        ctx.fillText("TAP  ·  PRESS ENTER  ·  TO START", W / 2, 395);
         ctx.shadowBlur = 0;
       }
       ctx.textAlign = "left";
@@ -656,6 +749,7 @@ export default function GamePage() {
 
       if (phase === "title")           { drawTitle(t); return; }
       if (phase === "sectorComplete")  { drawSectorComplete(t); return; }
+      if (phase === "continue")        { drawContinue(t); return; }
 
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, W, H);
@@ -681,6 +775,7 @@ export default function GamePage() {
       }
 
       drawRoom(t);
+      drawLasers(t);
       drawTreasures(t);
       drawEnemies(t);
       if (daemon.active) drawDaemon(t);
@@ -713,7 +808,7 @@ export default function GamePage() {
       const warnAt = Math.ceil(SECTOR_TIMERS[sectorIdx] * 0.4);
       const timerColor = (timer <= warnAt && Math.floor(t / 350) % 2) ? RED : (timer <= warnAt ? "#ff8040" : GREEN);
 
-      ctx.font = "bold 13px monospace";
+      ctx.font = "bold 18px monospace";
       ctx.textAlign = "left";
 
       ctx.fillStyle = GREEN;
@@ -784,6 +879,51 @@ export default function GamePage() {
         const arrows = { left: "◄", right: "►", up: "▲", down: "▼" };
         ctx.fillText(arrows[exit.side], dx + dw / 2, dy + dh / 2 + 4);
         ctx.textAlign = "left";
+      }
+    }
+
+    // ── Lasers ──────────────────────────────────────────────────────────────
+    function drawLasers(t) {
+      const tSec = t / 1000;
+      for (const L of (ROOMS[roomIdx].lasers ?? [])) {
+        const on = ((tSec + L.phase) % LASER_PERIOD) < LASER_ON;
+        const pulse = Math.sin(t / 180) * 0.3 + 0.7;
+        ctx.save();
+        if (on) {
+          ctx.shadowColor = RED;
+          ctx.shadowBlur  = 18 + pulse * 12;
+          ctx.strokeStyle = `rgba(255,30,60,${0.7 + pulse * 0.3})`;
+          ctx.lineWidth   = 3;
+          ctx.beginPath();
+          ctx.moveTo(L.x1, L.y1);
+          ctx.lineTo(L.x2, L.y2);
+          ctx.stroke();
+          ctx.shadowBlur  = 4;
+          ctx.strokeStyle = "#ffcccc";
+          ctx.lineWidth   = 1;
+          ctx.beginPath();
+          ctx.moveTo(L.x1, L.y1);
+          ctx.lineTo(L.x2, L.y2);
+          ctx.stroke();
+        } else {
+          ctx.strokeStyle = "rgba(255,30,60,0.15)";
+          ctx.lineWidth   = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(L.x1, L.y1);
+          ctx.lineTo(L.x2, L.y2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        ctx.restore();
+        const ea = on ? 1 : 0.3;
+        ctx.shadowColor = on ? RED : "transparent";
+        ctx.shadowBlur  = on ? 8 : 0;
+        ctx.fillStyle   = `rgba(255,30,60,${ea})`;
+        ctx.fillRect(L.x1 - 3, L.y1 - 3, 6, 6);
+        ctx.fillRect(L.x2 - 3, L.y2 - 3, 6, 6);
+        ctx.shadowBlur  = 0;
+        ctx.shadowColor = "transparent";
       }
     }
 
@@ -999,9 +1139,9 @@ export default function GamePage() {
       ctx.fillStyle = "rgba(255,48,96,0.05)";
       ctx.fillRect(0, 0, W, GH);
       ctx.fillStyle = RED;
-      ctx.font = "bold 11px monospace";
+      ctx.font = "bold 17px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("⚠  DAEMON INCOMING — COLLECT ALL LOOT NOW  ⚠", W / 2, 20);
+      ctx.fillText("⚠  DAEMON INCOMING — COLLECT ALL LOOT NOW  ⚠", W / 2, 24);
       ctx.textAlign = "left";
       ctx.restore();
     }
@@ -1027,6 +1167,43 @@ export default function GamePage() {
       ctx.shadowColor = "transparent";
     }
 
+    // ── Continue screen ─────────────────────────────────────────────────────
+    function drawContinue(t) {
+      ctx.fillStyle = "rgba(3,5,15,0.94)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = "center";
+
+      ctx.fillStyle  = RED;
+      ctx.font       = "bold 42px monospace";
+      ctx.shadowColor = RED;
+      ctx.shadowBlur  = 30;
+      ctx.fillText("INSERT COIN", W / 2, H / 2 - 68);
+      ctx.shadowBlur = 0;
+
+      if (Math.floor(t / 500) % 2) {
+        ctx.fillStyle  = GREEN;
+        ctx.font       = "bold 20px monospace";
+        ctx.shadowColor = GREEN;
+        ctx.shadowBlur  = 10;
+        ctx.fillText("PRESS ENTER TO CONTINUE", W / 2, H / 2 - 12);
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.fillStyle  = continueCountdown <= 3 ? RED : DIM;
+      ctx.font       = "bold 56px monospace";
+      ctx.shadowColor = continueCountdown <= 3 ? RED : DIM;
+      ctx.shadowBlur  = 20;
+      ctx.fillText(String(continueCountdown), W / 2, H / 2 + 64);
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = "rgba(0,204,122,0.55)";
+      ctx.font      = "13px monospace";
+      ctx.fillText("SECTOR 3 CHECKPOINT — ONE FREE CONTINUE", W / 2, H / 2 + 108);
+
+      ctx.textAlign   = "left";
+      ctx.shadowColor = "transparent";
+    }
+
     // ── Restart ─────────────────────────────────────────────────────────────
     function restart() {
       phase      = "playing";
@@ -1045,6 +1222,8 @@ export default function GamePage() {
         phase = "playing"; lastTick = performance.now();
       } else if (phase === "sectorComplete") {
         enterSector(sectorIdx + 1); phase = "playing";
+      } else if (phase === "continue") {
+        useContinue();
       } else if (phase === "gameover" || phase === "win") {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         restart();
