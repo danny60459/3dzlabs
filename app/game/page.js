@@ -196,6 +196,7 @@ const ROOMS = [
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function GamePage() {
   const canvasRef = useRef(null);
+  const keysRef   = useRef({});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -375,7 +376,7 @@ export default function GamePage() {
     }
 
     // ── Input ──────────────────────────────────────────────────────────────
-    const keys    = {};
+    const keys = keysRef.current;
     const onDown  = e => { keys[e.key] = true; };
     const onUp    = e => { keys[e.key] = false; };
     const onR     = e => {
@@ -604,7 +605,7 @@ export default function GamePage() {
         ctx.font = "13px monospace";
         ctx.shadowColor = GREEN;
         ctx.shadowBlur = 8;
-        ctx.fillText("PRESS ENTER TO INITIALIZE", W / 2, 380);
+        ctx.fillText("TAP  ·  PRESS ENTER  ·  TO START", W / 2, 380);
         ctx.shadowBlur = 0;
       }
       ctx.textAlign = "left";
@@ -641,7 +642,7 @@ export default function GamePage() {
         ctx.font = "13px monospace";
         ctx.shadowColor = GREEN;
         ctx.shadowBlur = 8;
-        ctx.fillText("PRESS ENTER TO CONTINUE", W / 2, H / 2 + 90);
+        ctx.fillText("TAP  ·  PRESS ENTER  ·  TO CONTINUE", W / 2, H / 2 + 90);
         ctx.shadowBlur = 0;
       }
 
@@ -689,8 +690,8 @@ export default function GamePage() {
 
       const warnAt = Math.ceil(SECTOR_TIMERS[sectorIdx] * 0.4);
       if (timer > 0 && timer <= warnAt && !daemon.active) drawWarning(t);
-      if (phase === "gameover") drawOverlay("GAME OVER", RED,   `SCORE  ${String(score).padStart(6,"0")}`, "PRESS [R] TO RESTART");
-      if (phase === "win")      drawOverlay("ESCAPED!",  GREEN, `SCORE  ${String(score).padStart(6,"0")}  +500 BONUS`, "PRESS [R] TO PLAY AGAIN");
+      if (phase === "gameover") drawOverlay("GAME OVER", RED,   `SCORE  ${String(score).padStart(6,"0")}`, "TAP  ·  [R]  TO RESTART");
+      if (phase === "win")      drawOverlay("ESCAPED!",  GREEN, `SCORE  ${String(score).padStart(6,"0")}  +500 BONUS`, "TAP  ·  [R]  TO PLAY AGAIN");
     }
 
     // ── HUD ─────────────────────────────────────────────────────────────────
@@ -1036,6 +1037,21 @@ export default function GamePage() {
       enterSector(0);
     }
 
+    // ── Touch-to-action (title tap, sector-complete tap, restart tap) ──────
+    const onCanvasTouch = (e) => {
+      e.preventDefault();
+      if (phase === "title") {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        phase = "playing"; lastTick = performance.now();
+      } else if (phase === "sectorComplete") {
+        enterSector(sectorIdx + 1); phase = "playing";
+      } else if (phase === "gameover" || phase === "win") {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        restart();
+      }
+    };
+    canvas.addEventListener("touchstart", onCanvasTouch, { passive: false });
+
     // ── Game loop ───────────────────────────────────────────────────────────
     let raf;
     function loop() { update(); draw(); raf = requestAnimationFrame(loop); }
@@ -1043,6 +1059,7 @@ export default function GamePage() {
 
     return () => {
       cancelAnimationFrame(raf);
+      canvas.removeEventListener("touchstart", onCanvasTouch);
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup",   onUp);
       window.removeEventListener("keydown", onR);
@@ -1051,20 +1068,84 @@ export default function GamePage() {
     };
   }, []);
 
+  const dpadHandlers = (key) => ({
+    onPointerDown:   (e) => { e.preventDefault(); keysRef.current[key] = true;  },
+    onPointerUp:     ()  => { keysRef.current[key] = false; },
+    onPointerLeave:  ()  => { keysRef.current[key] = false; },
+    onPointerCancel: ()  => { keysRef.current[key] = false; },
+  });
+
+  const btnBase = {
+    background:               "rgba(0,255,160,0.12)",
+    border:                   "1px solid rgba(0,255,160,0.55)",
+    color:                    "#00ffa0",
+    fontFamily:               "monospace",
+    fontSize:                 "18px",
+    width:                    "48px",
+    height:                   "48px",
+    display:                  "flex",
+    alignItems:               "center",
+    justifyContent:           "center",
+    borderRadius:             "4px",
+    boxShadow:                "0 0 10px rgba(0,255,160,0.3), inset 0 0 6px rgba(0,255,160,0.08)",
+    cursor:                   "pointer",
+    userSelect:               "none",
+    touchAction:              "none",
+    WebkitTapHighlightColor:  "transparent",
+    flexShrink:               0,
+  };
+
   return (
-    <main className="min-h-screen bg-[#03050f] flex flex-col items-center justify-center py-8 px-4">
-      <div className="mb-3 font-mono text-[#00ffa0] text-xs tracking-widest text-center">
-        DAEMON.EXE &nbsp;·&nbsp; MOVE: WASD / ARROW KEYS &nbsp;·&nbsp; 3 SECTORS · 9 ROOMS · COLLECT ALL ◆ BEFORE THE DAEMON ARRIVES
+    <main className="min-h-screen bg-[#03050f] flex flex-col items-center justify-center py-2 sm:py-8 px-2 sm:px-4">
+      <div className="mb-2 font-mono text-[#00ffa0] text-xs tracking-widest text-center">
+        DAEMON.EXE &nbsp;·&nbsp; WASD / ARROWS / D-PAD &nbsp;·&nbsp; 3 SECTORS · 9 ROOMS · COLLECT ALL ◆
       </div>
 
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={560}
-        style={{ display: "block", border: "1px solid #00ffa0", imageRendering: "pixelated", maxWidth: "100%" }}
-      />
+      {/* Canvas wrapper — relative so D-pad can overlay it */}
+      <div style={{ position: "relative", display: "inline-block", maxWidth: "100%", lineHeight: 0 }}>
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={560}
+          style={{
+            display:         "block",
+            border:          "1px solid #00ffa0",
+            imageRendering:  "pixelated",
+            maxWidth:        "100%",
+            maxHeight:       "calc(100svh - 110px)",
+            width:           "auto",
+            height:          "auto",
+            touchAction:     "none",
+          }}
+        />
 
-      <div className="mt-3 font-mono text-[#00cc7a] text-xs text-center space-x-4">
+        {/* D-pad — bottom-left overlay */}
+        <div style={{
+          position:   "absolute",
+          bottom:     "14px",
+          left:       "14px",
+          display:    "grid",
+          gridTemplateColumns: "repeat(3, 48px)",
+          gridTemplateRows:    "repeat(3, 48px)",
+          gap:        "5px",
+          touchAction: "none",
+        }}>
+          {/* Row 1 — Up only */}
+          <div />
+          <button {...dpadHandlers("ArrowUp")}    style={btnBase}>▲</button>
+          <div />
+          {/* Row 2 — Left · centre pip · Right */}
+          <button {...dpadHandlers("ArrowLeft")}  style={btnBase}>◄</button>
+          <div style={{ ...btnBase, background: "rgba(0,255,160,0.04)", cursor: "default", boxShadow: "none", border: "1px solid rgba(0,255,160,0.18)" }} />
+          <button {...dpadHandlers("ArrowRight")} style={btnBase}>►</button>
+          {/* Row 3 — Down only */}
+          <div />
+          <button {...dpadHandlers("ArrowDown")}  style={btnBase}>▼</button>
+          <div />
+        </div>
+      </div>
+
+      <div className="mt-2 font-mono text-[#00cc7a] text-xs text-center space-x-4">
         <span>◆ LOOT</span>
         <span>·</span>
         <span>✕ ENEMIES (AVOID)</span>

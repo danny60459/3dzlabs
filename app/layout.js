@@ -12,6 +12,11 @@ export const metadata = {
   description: "A curated hub of AI-powered tools. Navigate the stack.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
