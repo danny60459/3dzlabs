@@ -318,7 +318,7 @@ export default function GamePage() {
     let audioCtx             = null;
 
     const player = { x: WALL + 34, y: MY };
-    const daemon  = { x: 0, y: 0, active: false, speed: 0.8 * P_SPEED, spawnAge: 0 };
+    const daemon  = { x: 0, y: 0, active: false, speed: 0.7 * P_SPEED, spawnAge: 0 };
 
     let checkpoint        = null;  // { score, lives } saved on first S3 entry
     let continueCountdown = 10;
@@ -348,7 +348,7 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = 0.8 * P_SPEED;
+      daemon.speed  = 0.7 * P_SPEED;
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
@@ -612,7 +612,7 @@ export default function GamePage() {
       const [s3Start, s3End] = SECTOR_RANGES[2];
       for (let i = s3Start; i < s3End; i++) {
         roomStates[i] = {
-          enemies:     rooms[i].enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0 })),
+          enemies:     rooms[i].enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0, lastX: e.x, lastY: e.y, stuckCount: 0 })),
           treasures:   rooms[i].treasureDefs.map(t => ({ ...t, collected: false })),
           movingWalls: (rooms[i].movingWallDefs ?? []).map(mw => ({ ...mw, dir: 1 })),
         };
@@ -652,9 +652,9 @@ export default function GamePage() {
       if (keys["ArrowUp"]    || keys["w"] || keys["W"]) my -= 1;
       if (keys["ArrowDown"]  || keys["s"] || keys["S"]) my += 1;
       if (mx !== 0 && my !== 0) { mx *= 0.7071; my *= 0.7071; }
-      const speedScale = canvas.width / 800;
-      player.x += (mx * P_SPEED) / speedScale;
-      player.y += (my * P_SPEED) / speedScale;
+      const displayScale = Math.max(1, canvas.clientWidth / 400);
+      player.x += mx * P_SPEED / displayScale;
+      player.y += my * P_SPEED / displayScale;
 
       const walls = buildWalls(roomIdx);
       resolveWalls(walls);
@@ -765,9 +765,9 @@ export default function GamePage() {
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const dScale = canvas.width / 800;
-        daemon.x += (dx / dist) * daemon.speed / dScale;
-        daemon.y += (dy / dist) * daemon.speed / dScale;
+        const displayScale = Math.max(1, canvas.clientWidth / 400);
+        daemon.x += (dx / dist) * daemon.speed / displayScale;
+        daemon.y += (dy / dist) * daemon.speed / displayScale;
         if (iframes <= 0 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
           sndDeath(); shakeFrames = 22;
           triggerGameOver();
@@ -1296,18 +1296,18 @@ export default function GamePage() {
       ctx.textAlign = "center";
 
       ctx.fillStyle  = RED;
-      ctx.font       = "bold 42px monospace";
+      ctx.font       = "bold 52px monospace";
       ctx.shadowColor = RED;
       ctx.shadowBlur  = 30;
-      ctx.fillText("INSERT COIN", W / 2, H / 2 - 68);
+      ctx.fillText("CONTINUE?", W / 2, H / 2 - 68);
       ctx.shadowBlur = 0;
 
       if (Math.floor(t / 500) % 2) {
         ctx.fillStyle  = GREEN;
-        ctx.font       = "bold 20px monospace";
+        ctx.font       = "bold 18px monospace";
         ctx.shadowColor = GREEN;
         ctx.shadowBlur  = 10;
-        ctx.fillText("PRESS ENTER TO CONTINUE", W / 2, H / 2 - 12);
+        ctx.fillText("INSERT COIN  ·  PRESS ENTER", W / 2, H / 2 - 16);
         ctx.shadowBlur = 0;
       }
 
