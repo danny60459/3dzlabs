@@ -111,7 +111,7 @@ const ROOM_POOLS = [
     {
       name: "S2-R1a",
       innerWalls: [[300,80,14,200],[100,280,190,14],[520,180,14,200],[180,380,240,14]],
-      enemyDefs: [{ x:200,y:170,speed:1.4 },{ x:580,y:130,speed:1.5 },{ x:380,y:400,speed:1.3 },{ x:620,y:390,speed:1.4 }],
+      enemyDefs: [{ x:200,y:170,speed:1.0 },{ x:580,y:130,speed:1.05 },{ x:380,y:400,speed:0.95 },{ x:620,y:390,speed:1.0 }],
       treasureDefs: [{ x:160,y:130 },{ x:450,y:130 },{ x:300,y:340 },{ x:680,y:200 }],
       exits: [{ side:"right", toRoom:4 }],
       lasers: [
@@ -123,7 +123,7 @@ const ROOM_POOLS = [
     {
       name: "S2-R1b",
       innerWalls: [[200,100,220,14],[200,100,14,160],[480,280,14,180],[280,360,200,14],[580,120,160,14]],
-      enemyDefs: [{ x:350,y:200,speed:1.4 },{ x:600,y:400,speed:1.5 },{ x:220,y:400,speed:1.3 },{ x:640,y:220,speed:1.4 }],
+      enemyDefs: [{ x:350,y:200,speed:1.0 },{ x:600,y:400,speed:1.05 },{ x:220,y:400,speed:0.95 },{ x:640,y:220,speed:1.0 }],
       treasureDefs: [{ x:180,y:400 },{ x:350,y:100 },{ x:660,y:100 },{ x:500,y:430 }],
       exits: [{ side:"right", toRoom:4 }],
       lasers: [
@@ -138,7 +138,7 @@ const ROOM_POOLS = [
     {
       name: "S2-R2a",
       innerWalls: [[200,120,14,200],[200,120,180,14],[500,200,14,200],[360,380,140,14],[300,300,14,80]],
-      enemyDefs: [{ x:350,y:220,speed:1.4 },{ x:580,y:130,speed:1.5 },{ x:220,y:400,speed:1.3 },{ x:630,y:380,speed:1.4 }],
+      enemyDefs: [{ x:350,y:220,speed:1.0 },{ x:580,y:130,speed:1.05 },{ x:220,y:400,speed:0.95 },{ x:630,y:380,speed:1.0 }],
       treasureDefs: [{ x:200,y:200 },{ x:650,y:430 },{ x:380,y:350 },{ x:580,y:280 }],
       exits: [{ side:"left", toRoom:3 },{ side:"right", toRoom:5 }],
       lasers: [
@@ -150,7 +150,7 @@ const ROOM_POOLS = [
     {
       name: "S2-R2b",
       innerWalls: [[180,200,180,14],[180,200,14,180],[480,100,180,14],[480,100,14,200],[280,360,200,14]],
-      enemyDefs: [{ x:400,y:180,speed:1.5 },{ x:220,y:380,speed:1.3 },{ x:600,y:360,speed:1.4 },{ x:350,y:420,speed:1.5 }],
+      enemyDefs: [{ x:400,y:180,speed:1.05 },{ x:220,y:380,speed:0.95 },{ x:600,y:360,speed:1.0 },{ x:350,y:420,speed:1.05 }],
       treasureDefs: [{ x:200,y:130 },{ x:660,y:430 },{ x:400,y:300 },{ x:600,y:130 }],
       exits: [{ side:"left", toRoom:3 },{ side:"right", toRoom:5 }],
       lasers: [
@@ -165,7 +165,7 @@ const ROOM_POOLS = [
     {
       name: "S2-R3a",
       innerWalls: [[80,120,280,14],[80,120,14,180],[80,300,200,14],[440,200,14,220],[560,330,200,14]],
-      enemyDefs: [{ x:300,y:220,speed:1.4 },{ x:560,y:180,speed:1.5 },{ x:350,y:400,speed:1.3 },{ x:650,y:420,speed:1.4 }],
+      enemyDefs: [{ x:300,y:220,speed:1.0 },{ x:560,y:180,speed:1.05 },{ x:350,y:400,speed:0.95 },{ x:650,y:420,speed:1.0 }],
       treasureDefs: [{ x:200,y:80 },{ x:400,y:100 },{ x:530,y:450 },{ x:700,y:260 },{ x:160,y:400 }],
       exits: [{ side:"left", toRoom:4 }],
       lasers: [
@@ -177,7 +177,7 @@ const ROOM_POOLS = [
     {
       name: "S2-R3b",
       innerWalls: [[200,160,220,14],[200,160,14,160],[480,260,14,200],[250,360,200,14],[580,100,160,14]],
-      enemyDefs: [{ x:400,y:200,speed:1.5 },{ x:220,y:430,speed:1.4 },{ x:620,y:200,speed:1.3 },{ x:560,y:420,speed:1.5 }],
+      enemyDefs: [{ x:400,y:200,speed:1.05 },{ x:220,y:430,speed:1.0 },{ x:620,y:200,speed:0.95 },{ x:560,y:420,speed:1.05 }],
       treasureDefs: [{ x:180,y:100 },{ x:400,y:430 },{ x:640,y:430 },{ x:700,y:130 },{ x:300,y:300 }],
       exits: [{ side:"left", toRoom:4 }],
       lasers: [
@@ -192,7 +192,7 @@ const ROOM_POOLS = [
     {
       name: "S3-R1a",
       innerWalls: [[200,80,14,260],[200,80,180,14],[520,220,14,160],[300,360,180,14],[560,100,160,14]],
-      enemyDefs: [{ x:400,y:200,speed:1.9 },{ x:580,y:400,speed:2.0 },{ x:350,y:420,speed:1.8 },{ x:640,y:200,speed:2.1 },{ x:280,y:180,speed:1.9 }],
+      enemyDefs: [{ x:400,y:200,speed:1.05 },{ x:580,y:400,speed:1.1 },{ x:350,y:420,speed:1.0 },{ x:640,y:200,speed:1.15 },{ x:280,y:180,speed:1.05 }],
       treasureDefs: [{ x:200,y:430 },{ x:390,y:55 },{ x:660,y:150 },{ x:610,y:440 },{ x:680,y:310 }],
       exits: [{ side:"right", toRoom:7 }],
       lasers: [
@@ -208,7 +208,7 @@ const ROOM_POOLS = [
     {
       name: "S3-R1b",
       innerWalls: [[160,140,200,14],[160,140,14,200],[500,200,14,200],[280,370,200,14],[550,100,14,160]],
-      enemyDefs: [{ x:350,y:200,speed:2.0 },{ x:620,y:380,speed:1.9 },{ x:280,y:400,speed:2.1 },{ x:630,y:200,speed:1.8 },{ x:430,y:420,speed:2.0 }],
+      enemyDefs: [{ x:350,y:200,speed:1.1 },{ x:620,y:380,speed:1.05 },{ x:280,y:400,speed:1.15 },{ x:630,y:200,speed:1.0 },{ x:430,y:420,speed:1.1 }],
       treasureDefs: [{ x:180,y:430 },{ x:400,y:80 },{ x:680,y:130 },{ x:600,y:450 },{ x:260,y:300 }],
       exits: [{ side:"right", toRoom:7 }],
       lasers: [
@@ -227,7 +227,7 @@ const ROOM_POOLS = [
     {
       name: "S3-R2a",
       innerWalls: [[160,180,200,14],[160,80,14,200],[420,280,14,180],[420,280,200,14],[580,100,14,200],[240,370,160,14]],
-      enemyDefs: [{ x:300,y:200,speed:2.0 },{ x:220,y:400,speed:1.9 },{ x:560,y:200,speed:2.1 },{ x:640,y:400,speed:2.0 },{ x:400,y:430,speed:1.8 }],
+      enemyDefs: [{ x:300,y:200,speed:1.1 },{ x:220,y:400,speed:1.05 },{ x:560,y:200,speed:1.15 },{ x:640,y:400,speed:1.1 },{ x:400,y:430,speed:1.0 }],
       treasureDefs: [{ x:200,y:130 },{ x:280,y:310 },{ x:680,y:240 },{ x:360,y:450 },{ x:540,y:80 }],
       exits: [{ side:"left", toRoom:6 },{ side:"right", toRoom:8 }],
       lasers: [
@@ -243,7 +243,7 @@ const ROOM_POOLS = [
     {
       name: "S3-R2b",
       innerWalls: [[200,200,180,14],[200,100,14,200],[460,300,14,180],[350,380,180,14],[580,100,14,200]],
-      enemyDefs: [{ x:360,y:170,speed:2.0 },{ x:220,y:420,speed:2.1 },{ x:540,y:200,speed:1.9 },{ x:660,y:400,speed:2.0 },{ x:420,y:430,speed:1.8 }],
+      enemyDefs: [{ x:360,y:170,speed:1.1 },{ x:220,y:420,speed:1.15 },{ x:540,y:200,speed:1.05 },{ x:660,y:400,speed:1.1 },{ x:420,y:430,speed:1.0 }],
       treasureDefs: [{ x:200,y:140 },{ x:660,y:130 },{ x:310,y:310 },{ x:400,y:450 },{ x:560,y:420 }],
       exits: [{ side:"left", toRoom:6 },{ side:"right", toRoom:8 }],
       lasers: [
@@ -262,7 +262,7 @@ const ROOM_POOLS = [
     {
       name: "S3-R3a",
       innerWalls: [[180,120,260,14],[180,120,14,180],[180,300,160,14],[480,200,14,180],[480,370,200,14],[560,100,14,100]],
-      enemyDefs: [{ x:380,y:200,speed:2.1 },{ x:220,y:380,speed:2.0 },{ x:600,y:180,speed:2.2 },{ x:560,y:430,speed:2.0 },{ x:380,y:420,speed:1.9 }],
+      enemyDefs: [{ x:380,y:200,speed:1.15 },{ x:220,y:380,speed:1.1 },{ x:600,y:180,speed:1.2 },{ x:560,y:430,speed:1.1 },{ x:380,y:420,speed:1.05 }],
       treasureDefs: [{ x:200,y:80 },{ x:430,y:80 },{ x:700,y:430 },{ x:260,y:390 },{ x:560,y:460 },{ x:680,y:300 }],
       exits: [{ side:"left", toRoom:7 }],
       lasers: [
@@ -278,7 +278,7 @@ const ROOM_POOLS = [
     {
       name: "S3-R3b",
       innerWalls: [[160,140,280,14],[160,140,14,160],[160,300,170,14],[460,200,14,180],[460,360,200,14],[540,100,14,100]],
-      enemyDefs: [{ x:360,y:200,speed:2.0 },{ x:220,y:400,speed:2.2 },{ x:580,y:170,speed:2.1 },{ x:540,y:440,speed:2.0 },{ x:400,y:400,speed:1.9 }],
+      enemyDefs: [{ x:360,y:200,speed:1.1 },{ x:220,y:400,speed:1.2 },{ x:580,y:170,speed:1.15 },{ x:540,y:440,speed:1.1 },{ x:400,y:400,speed:1.05 }],
       treasureDefs: [{ x:180,y:80 },{ x:400,y:80 },{ x:680,y:450 },{ x:260,y:390 },{ x:540,y:460 },{ x:700,y:290 }],
       exits: [{ side:"left", toRoom:7 }],
       lasers: [
@@ -318,7 +318,7 @@ export default function GamePage() {
     let audioCtx             = null;
 
     const player = { x: WALL + 34, y: MY };
-    const daemon  = { x: 0, y: 0, active: false, speed: 1.2, spawnAge: 0 };
+    const daemon  = { x: 0, y: 0, active: false, speed: 0.8 * P_SPEED, spawnAge: 0 };
 
     let checkpoint        = null;  // { score, lives } saved on first S3 entry
     let continueCountdown = 10;
@@ -348,7 +348,7 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = [0.35, 0.6, 0.9][idx];
+      daemon.speed  = 0.8 * P_SPEED;
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
@@ -591,7 +591,6 @@ export default function GamePage() {
       if (daemon.active) {
         daemon.x = WALL + 8;
         daemon.y = WALL + 8;
-        daemon.speed = Math.min(daemon.speed + 0.3, 4.0);
       }
     }
 
@@ -1434,7 +1433,7 @@ export default function GamePage() {
   };
 
   // ── Trackpad zone + swap button ────────────────────────────────────────────
-  const TRACK_W = 160;
+  const TRACK_W = 220;
 
   const trackpadEl = (
     <div
