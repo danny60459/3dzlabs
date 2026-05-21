@@ -1528,14 +1528,16 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Canvas — centered in remaining space (landscape) or column (portrait) */}
-      {isLandscape ? (
-        <div style={{ flex: "1 1 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <canvas ref={canvasRef} width={800} height={560} style={canvasStyle} />
-        </div>
-      ) : (
+      {/* Canvas — always-present wrapper keeps canvasRef stable across layout changes */}
+      <div style={{
+        display:        "flex",
+        alignItems:     "center",
+        justifyContent: "center",
+        flex:           isLandscape ? "1 1 0" : undefined,
+        width:          isLandscape ? undefined : "100%",
+      }}>
         <canvas ref={canvasRef} width={800} height={560} style={canvasStyle} />
-      )}
+      </div>
 
       {/* Landscape right-hand trackpad */}
       {showTrackpad && padSide === "right" && (
