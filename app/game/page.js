@@ -51,7 +51,7 @@ const ROOM_POOLS = [
       enemyDefs: [{ x:400,y:180,speed:0.9 },{ x:600,y:380,speed:0.8 },{ x:250,y:360,speed:1.0 }],
       treasureDefs: [{ x:350,y:130 },{ x:620,y:200 },{ x:680,y:430 }],
       exits: [{ side:"right", toRoom:1 }],
-      lasers: [{ x1:16, y1:300, x2:784, y2:300, phase:0, on:1.2, period:3.0 }],
+      lasers: [{ x1:440, y1:300, x2:784, y2:300, phase:0, on:1.2, period:3.0 }],
       movingWallDefs: [],
     },
     {
@@ -60,7 +60,7 @@ const ROOM_POOLS = [
       enemyDefs: [{ x:350,y:250,speed:0.9 },{ x:600,y:150,speed:1.0 },{ x:580,y:400,speed:0.8 }],
       treasureDefs: [{ x:200,y:90 },{ x:640,y:90 },{ x:300,y:430 }],
       exits: [{ side:"right", toRoom:1 }],
-      lasers: [{ x1:400, y1:16, x2:400, y2:484, phase:0.5, on:1.2, period:3.0 }],
+      lasers: [{ x1:400, y1:16, x2:400, y2:226, phase:0.5, on:1.2, period:3.0 }],
       movingWallDefs: [],
     },
   ],
@@ -72,7 +72,7 @@ const ROOM_POOLS = [
       enemyDefs: [{ x:200,y:200,speed:0.9 },{ x:600,y:300,speed:0.85 },{ x:380,y:400,speed:1.0 }],
       treasureDefs: [{ x:180,y:400 },{ x:380,y:200 },{ x:660,y:130 }],
       exits: [{ side:"left", toRoom:0 },{ side:"right", toRoom:2 }],
-      lasers: [{ x1:16, y1:190, x2:784, y2:190, phase:0.8, on:1.2, period:3.0 }],
+      lasers: [{ x1:480, y1:190, x2:784, y2:190, phase:0.8, on:1.2, period:3.0 }],
       movingWallDefs: [],
     },
     {
@@ -346,7 +346,7 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = [0.6, 1.0, 1.5][idx];
+      daemon.speed  = [0.35, 0.6, 0.9][idx];
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
@@ -985,7 +985,7 @@ export default function GamePage() {
 
     // ── Lasers ──────────────────────────────────────────────────────────────
     function drawLasers(t) {
-      const tSec = t / 1000;
+      const tSec = performance.now() / 1000;
       for (const L of (rooms[roomIdx].lasers ?? [])) {
         const laserOn = L.on ?? LASER_ON, laserPer = L.period ?? LASER_PERIOD;
         const on = ((tSec + L.phase) % laserPer) < laserOn;
