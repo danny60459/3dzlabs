@@ -1375,6 +1375,10 @@ export default function GamePage() {
   // ── Orientation & side state ───────────────────────────────────────────────
   const [isLandscape, setIsLandscape] = useState(false);
   const [padSide,     setPadSide]     = useState("right");
+  const [isTouch]      = useState(() =>
+    typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+  );
+  const showTrackpad   = isLandscape && isTouch;
   const activePtrId    = useRef(null);
   const touchOriginRef = useRef(null);
 
@@ -1489,7 +1493,7 @@ export default function GamePage() {
     display:        "block",
     border:         "1px solid #00ffa0",
     imageRendering: "pixelated",
-    maxWidth:       isLandscape ? `calc(100vw - ${TRACK_W + 8}px)` : "100%",
+    maxWidth:       showTrackpad ? `calc(100vw - ${TRACK_W + 8}px)` : "100%",
     maxHeight:      isLandscape ? "100svh" : "calc(100svh - 200px)",
     width:          "auto",
     height:         "auto",
@@ -1517,18 +1521,24 @@ export default function GamePage() {
       )}
 
       {/* Landscape left-hand trackpad */}
-      {isLandscape && padSide === "left" && (
+      {showTrackpad && padSide === "left" && (
         <div style={{ width: `${TRACK_W}px`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           {trackpadEl}
           <div style={{ padding: "4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>{swapBtn}</div>
         </div>
       )}
 
-      {/* Canvas */}
-      <canvas ref={canvasRef} width={800} height={560} style={canvasStyle} />
+      {/* Canvas — centered in remaining space (landscape) or column (portrait) */}
+      {isLandscape ? (
+        <div style={{ flex: "1 1 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <canvas ref={canvasRef} width={800} height={560} style={canvasStyle} />
+        </div>
+      ) : (
+        <canvas ref={canvasRef} width={800} height={560} style={canvasStyle} />
+      )}
 
       {/* Landscape right-hand trackpad */}
-      {isLandscape && padSide === "right" && (
+      {showTrackpad && padSide === "right" && (
         <div style={{ width: `${TRACK_W}px`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           {trackpadEl}
           <div style={{ padding: "4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>{swapBtn}</div>
