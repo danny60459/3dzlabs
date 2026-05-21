@@ -33,202 +33,265 @@ const LASER_ON     = 1.5;   // seconds beam is active
 const LASER_PERIOD = 2.3;   // total cycle (1.5 on + 0.8 off)
 
 // ─── Sector config ────────────────────────────────────────────────────────────
-const SECTOR_TIMERS = [60, 45, 30];
+const SECTOR_TIMERS = [30, 30, 30];
 const SECTOR_RANGES = [[0, 3], [3, 6], [6, 9]];
 
-// ─── 9 rooms across 3 sectors ─────────────────────────────────────────────────
-const ROOMS = [
-  // ── SECTOR 1 · Easy ──────────────────────────────────────────────────────
-  {
-    name: "S1-R1",
-    innerWalls: [
-      [130,  90, 150, 14],
-      [130,  90,  14, 110],
-      [490, 210,  14, 150],
-      [310, 360, 190,  14],
-    ],
-    enemyDefs: [
-      { x: 210, y: 160, axis: "x", min: 150, max: 370, speed: 1.5 },
-      { x: 560, y: 355, axis: "y", min: 250, max: 430, speed: 1.2 },
-    ],
-    treasureDefs: [{ x: 360, y: 130 }, { x: 615, y: 160 }, { x: 670, y: 400 }],
-    exits: [{ side: "right", toRoom: 1 }],
-    lasers: [{ x1: 150, y1: 300, x2: 490, y2: 300, phase: 0 }],
-  },
-  {
-    name: "S1-R2",
-    innerWalls: [
-      [200, 120,  14, 190],
-      [200, 120, 140,  14],
-      [460, 310, 190,  14],
-      [550, 190,  14, 120],
-    ],
-    enemyDefs: [
-      { x: 110, y: 200, axis: "x", min:  50, max: 185, speed: 1.8 },
-      { x: 390, y: 160, axis: "x", min: 230, max: 440, speed: 1.5 },
-    ],
-    treasureDefs: [{ x: 100, y: 395 }, { x: 360, y: 250 }, { x: 650, y: 110 }],
-    exits: [{ side: "left", toRoom: 0 }, { side: "right", toRoom: 2 }],
-    lasers: [{ x1: 350, y1: 125, x2: 350, y2: 310, phase: 0.8 }],
-  },
-  {
-    name: "S1-R3",
-    innerWalls: [
-      [110, 160, 190,  14],
-      [110, 160,  14, 190],
-      [410, 110,  14, 170],
-      [580, 290,  14, 170],
-      [300, 380, 160,  14],
-    ],
-    enemyDefs: [
-      { x: 210, y: 110, axis: "x", min: 140, max: 395, speed: 1.8 },
-      { x: 510, y: 210, axis: "y", min:  90, max: 300, speed: 1.6 },
-      { x: 160, y: 390, axis: "y", min: 360, max: 460, speed: 1.5 },
-    ],
-    treasureDefs: [{ x: 350, y: 110 }, { x: 110, y: 435 }, { x: 560, y: 130 }, { x: 680, y: 260 }],
-    exits: [{ side: "left", toRoom: 1 }],
-    lasers: [{ x1: 500, y1: 120, x2: 500, y2: 280, phase: 1.2 }],
-  },
-
-  // ── SECTOR 2 · Medium ────────────────────────────────────────────────────
-  {
-    name: "S2-R1",
-    innerWalls: [
-      [350,  80,  14, 180],
-      [100, 260, 240,  14],
-      [520, 200,  14, 180],
-      [200, 380, 200,  14],
-    ],
-    enemyDefs: [
-      { x: 200, y: 150, axis: "y", min:  90, max: 250, speed: 2.0 },
-      { x: 480, y: 120, axis: "x", min: 375, max: 770, speed: 2.2 },
-      { x: 650, y: 430, axis: "y", min: 280, max: 460, speed: 2.0 },
-    ],
-    treasureDefs: [{ x: 160, y: 130 }, { x: 450, y: 130 }, { x: 300, y: 330 }, { x: 690, y: 170 }],
-    exits: [{ side: "right", toRoom: 4 }],
-    lasers: [
-      { x1: 110, y1: 270, x2: 340, y2: 270, phase: 0 },
-      { x1: 390, y1: 82,  x2: 390, y2: 258, phase: 1.1 },
-    ],
-  },
-  {
-    name: "S2-R2",
-    innerWalls: [
-      [160, 100,  14, 200],
-      [160, 100, 180,  14],
-      [500, 200,  14, 200],
-      [360, 390, 140,  14],
-      [260, 310, 100,  14],
-    ],
-    enemyDefs: [
-      { x:  90, y: 310, axis: "y", min: 120, max: 460, speed: 2.3 },
-      { x: 320, y: 180, axis: "x", min: 190, max: 490, speed: 2.0 },
-      { x: 620, y: 120, axis: "y", min:  80, max: 390, speed: 2.5 },
-    ],
-    treasureDefs: [{ x: 90, y: 140 }, { x: 680, y: 430 }, { x: 300, y: 240 }, { x: 570, y: 310 }],
-    exits: [{ side: "left", toRoom: 3 }, { side: "right", toRoom: 5 }],
-    lasers: [
-      { x1: 175, y1: 305, x2: 175, y2: 460, phase: 0.5 },
-      { x1: 270, y1: 200, x2: 495, y2: 200, phase: 1.4 },
-    ],
-  },
-  {
-    name: "S2-R3",
-    innerWalls: [
-      [ 80, 120, 300,  14],
-      [ 80, 120,  14, 160],
-      [ 80, 280, 200,  14],
-      [440, 180,  14, 220],
-      [560, 320, 200,  14],
-      [440, 400, 120,  14],
-    ],
-    enemyDefs: [
-      { x: 200, y: 200, axis: "x", min: 110, max: 370, speed: 2.2 },
-      { x: 350, y: 360, axis: "y", min: 300, max: 460, speed: 2.5 },
-      { x: 580, y: 220, axis: "y", min: 100, max: 305, speed: 2.8 },
-      { x: 690, y: 430, axis: "x", min: 580, max: 760, speed: 2.3 },
-    ],
-    treasureDefs: [{ x: 200, y: 80 }, { x: 400, y: 100 }, { x: 520, y: 450 }, { x: 720, y: 260 }, { x: 100, y: 400 }],
-    exits: [{ side: "left", toRoom: 4 }],
-    lasers: [
-      { x1: 200, y1: 300, x2: 435, y2: 300, phase: 0.3 },
-      { x1: 560, y1: 325, x2: 560, y2: 460, phase: 1.2 },
-    ],
-  },
-
-  // ── SECTOR 3 · Hard ──────────────────────────────────────────────────────
-  {
-    name: "S3-R1",
-    innerWalls: [
-      [200,  80,  14, 260],
-      [200,  80, 210,  14],
-      [540, 210,  14, 160],
-      [540, 210, 140,  14],
-      [300, 360, 160,  14],
-    ],
-    enemyDefs: [
-      { x: 110, y: 180, axis: "y", min: 100, max: 330, speed: 2.5 },
-      { x: 380, y: 155, axis: "x", min: 230, max: 520, speed: 2.8 },
-      { x: 650, y: 300, axis: "y", min: 230, max: 460, speed: 3.0 },
-      { x: 430, y: 440, axis: "x", min: 310, max: 760, speed: 2.7 },
-    ],
-    treasureDefs: [{ x: 100, y: 430 }, { x: 390, y: 55 }, { x: 660, y: 150 }, { x: 610, y: 440 }, { x: 250, y: 290 }],
-    exits: [{ side: "right", toRoom: 7 }],
-    lasers: [
-      { x1: 215, y1: 160, x2: 530, y2: 160, phase: 0 },
-      { x1: 556, y1: 95,  x2: 780, y2: 95,  phase: 0.7 },
-      { x1: 215, y1: 390, x2: 530, y2: 390, phase: 1.5 },
-    ],
-  },
-  {
-    name: "S3-R2",
-    innerWalls: [
-      [120, 200, 200,  14],
-      [120,  80,  14, 200],
-      [400, 300,  14, 160],
-      [400, 300, 200,  14],
-      [600, 100,  14, 200],
-      [240, 380, 160,  14],
-    ],
-    enemyDefs: [
-      { x: 220, y: 130, axis: "x", min: 140, max: 390, speed: 3.0 },
-      { x:  90, y: 360, axis: "y", min: 220, max: 460, speed: 2.8 },
-      { x: 520, y: 180, axis: "y", min: 100, max: 290, speed: 3.2 },
-      { x: 700, y: 390, axis: "y", min: 310, max: 460, speed: 2.9 },
-    ],
-    treasureDefs: [{ x: 90, y: 130 }, { x: 260, y: 300 }, { x: 680, y: 240 }, { x: 360, y: 450 }, { x: 540, y: 80 }],
-    exits: [{ side: "left", toRoom: 6 }, { side: "right", toRoom: 8 }],
-    lasers: [
-      { x1: 140, y1: 205, x2: 390, y2: 205, phase: 0.2 },
-      { x1: 415, y1: 105, x2: 415, y2: 295, phase: 0.9 },
-      { x1: 250, y1: 385, x2: 395, y2: 385, phase: 1.6 },
-    ],
-  },
-  {
-    name: "S3-R3",
-    innerWalls: [
-      [160, 120, 280,  14],
-      [160, 120,  14, 170],
-      [160, 290, 170,  14],
-      [480, 200,  14, 180],
-      [480, 380, 200,  14],
-      [560, 100,  14, 100],
-    ],
-    enemyDefs: [
-      { x:  90, y: 220, axis: "y", min: 140, max: 460, speed: 3.0 },
-      { x: 320, y: 180, axis: "x", min: 180, max: 470, speed: 3.3 },
-      { x: 650, y: 150, axis: "y", min:  80, max: 390, speed: 3.5 },
-      { x: 580, y: 440, axis: "x", min: 490, max: 760, speed: 3.0 },
-      { x: 300, y: 420, axis: "x", min: 175, max: 470, speed: 3.2 },
-    ],
-    treasureDefs: [{ x: 90, y: 80 }, { x: 420, y: 80 }, { x: 700, y: 430 }, { x: 250, y: 390 }, { x: 560, y: 460 }, { x: 680, y: 300 }],
-    exits: [{ side: "left", toRoom: 7 }],
-    lasers: [
-      { x1: 175, y1: 135, x2: 470, y2: 135, phase: 0 },
-      { x1: 495, y1: 205, x2: 495, y2: 375, phase: 0.8 },
-      { x1: 335, y1: 295, x2: 470, y2: 295, phase: 1.4 },
-    ],
-  },
+// ─── Room pools — 2 variants per slot, one randomly chosen each playthrough ───
+// Exits fixed by slot: S1[0]→right:1  S1[1]→left:0+right:2  S1[2]→left:1
+//                      S2[3]→right:4  S2[4]→left:3+right:5  S2[5]→left:4
+//                      S3[6]→right:7  S3[7]→left:6+right:8  S3[8]→left:7
+// Laser coords: horizontal { x1:16, x2:784 }  vertical { y1:16, y2:484 }
+// Enemy spawns ≥120px from any door centre (door centres at wall midpoints)
+const ROOM_POOLS = [
+  // ── Slot 0 · S1 entry ────────────────────────────────────────────────────
+  [
+    {
+      name: "S1-R1a",
+      innerWalls: [[200,80,160,14],[200,80,14,140],[500,300,14,184],[300,380,180,14]],
+      enemyDefs: [{ x:400,y:180,speed:0.9 },{ x:600,y:380,speed:0.8 },{ x:250,y:360,speed:1.0 }],
+      treasureDefs: [{ x:350,y:130 },{ x:620,y:200 },{ x:680,y:430 }],
+      exits: [{ side:"right", toRoom:1 }],
+      lasers: [{ x1:16, y1:300, x2:784, y2:300, phase:0, on:1.2, period:3.0 }],
+      movingWallDefs: [],
+    },
+    {
+      name: "S1-R1b",
+      innerWalls: [[160,160,14,180],[160,160,200,14],[520,220,200,14],[400,360,200,14]],
+      enemyDefs: [{ x:350,y:250,speed:0.9 },{ x:600,y:150,speed:1.0 },{ x:580,y:400,speed:0.8 }],
+      treasureDefs: [{ x:200,y:90 },{ x:640,y:90 },{ x:300,y:430 }],
+      exits: [{ side:"right", toRoom:1 }],
+      lasers: [{ x1:400, y1:16, x2:400, y2:484, phase:0.5, on:1.2, period:3.0 }],
+      movingWallDefs: [],
+    },
+  ],
+  // ── Slot 1 · S1 middle ───────────────────────────────────────────────────
+  [
+    {
+      name: "S1-R2a",
+      innerWalls: [[280,120,14,200],[280,120,180,14],[480,320,180,14],[480,200,14,130]],
+      enemyDefs: [{ x:200,y:200,speed:0.9 },{ x:600,y:300,speed:0.85 },{ x:380,y:400,speed:1.0 }],
+      treasureDefs: [{ x:180,y:400 },{ x:380,y:200 },{ x:660,y:130 }],
+      exits: [{ side:"left", toRoom:0 },{ side:"right", toRoom:2 }],
+      lasers: [{ x1:16, y1:190, x2:784, y2:190, phase:0.8, on:1.2, period:3.0 }],
+      movingWallDefs: [],
+    },
+    {
+      name: "S1-R2b",
+      innerWalls: [[160,200,180,14],[160,200,14,180],[500,120,180,14],[500,120,14,200]],
+      enemyDefs: [{ x:350,y:150,speed:0.95 },{ x:220,y:380,speed:0.9 },{ x:580,y:350,speed:1.0 }],
+      treasureDefs: [{ x:680,y:430 },{ x:200,y:120 },{ x:400,y:300 }],
+      exits: [{ side:"left", toRoom:0 },{ side:"right", toRoom:2 }],
+      lasers: [{ x1:16, y1:320, x2:784, y2:320, phase:0.3, on:1.2, period:3.0 }],
+      movingWallDefs: [],
+    },
+  ],
+  // ── Slot 2 · S1 final ────────────────────────────────────────────────────
+  [
+    {
+      name: "S1-R3a",
+      innerWalls: [[160,120,200,14],[160,120,14,180],[480,280,14,200],[300,380,200,14],[580,100,14,180]],
+      enemyDefs: [{ x:350,y:200,speed:1.0 },{ x:580,y:380,speed:0.9 },{ x:220,y:380,speed:0.85 }],
+      treasureDefs: [{ x:350,y:100 },{ x:680,y:200 },{ x:200,y:440 },{ x:600,y:450 }],
+      exits: [{ side:"left", toRoom:1 }],
+      lasers: [{ x1:300, y1:16, x2:300, y2:484, phase:1.2, on:1.2, period:3.0 }],
+      movingWallDefs: [],
+    },
+    {
+      name: "S1-R3b",
+      innerWalls: [[200,180,240,14],[200,180,14,160],[450,100,14,160],[550,300,200,14],[200,360,200,14]],
+      enemyDefs: [{ x:400,y:280,speed:1.0 },{ x:600,y:150,speed:0.9 },{ x:250,y:430,speed:0.85 }],
+      treasureDefs: [{ x:180,y:120 },{ x:650,y:430 },{ x:450,y:420 },{ x:680,y:240 }],
+      exits: [{ side:"left", toRoom:1 }],
+      lasers: [{ x1:16, y1:180, x2:784, y2:180, phase:0.6, on:1.2, period:3.0 }],
+      movingWallDefs: [],
+    },
+  ],
+  // ── Slot 3 · S2 entry ────────────────────────────────────────────────────
+  [
+    {
+      name: "S2-R1a",
+      innerWalls: [[300,80,14,200],[100,280,190,14],[520,180,14,200],[180,380,240,14]],
+      enemyDefs: [{ x:200,y:170,speed:1.4 },{ x:580,y:130,speed:1.5 },{ x:380,y:400,speed:1.3 },{ x:620,y:390,speed:1.4 }],
+      treasureDefs: [{ x:160,y:130 },{ x:450,y:130 },{ x:300,y:340 },{ x:680,y:200 }],
+      exits: [{ side:"right", toRoom:4 }],
+      lasers: [
+        { x1:16, y1:290, x2:784, y2:290, phase:0,   on:1.5, period:2.3 },
+        { x1:320, y1:16, x2:320, y2:484, phase:1.1, on:1.5, period:2.3 },
+      ],
+      movingWallDefs: [{ x:450, y:180, w:120, h:14, axis:"x", min:350, max:560, speed:1.2 }],
+    },
+    {
+      name: "S2-R1b",
+      innerWalls: [[200,100,220,14],[200,100,14,160],[480,280,14,180],[280,360,200,14],[580,120,160,14]],
+      enemyDefs: [{ x:350,y:200,speed:1.4 },{ x:600,y:400,speed:1.5 },{ x:220,y:400,speed:1.3 },{ x:640,y:220,speed:1.4 }],
+      treasureDefs: [{ x:180,y:400 },{ x:350,y:100 },{ x:660,y:100 },{ x:500,y:430 }],
+      exits: [{ side:"right", toRoom:4 }],
+      lasers: [
+        { x1:16, y1:175, x2:784, y2:175, phase:0.5, on:1.5, period:2.3 },
+        { x1:550, y1:16, x2:550, y2:484, phase:1.3, on:1.5, period:2.3 },
+      ],
+      movingWallDefs: [{ x:200, y:280, w:14, h:100, axis:"y", min:220, max:370, speed:1.0 }],
+    },
+  ],
+  // ── Slot 4 · S2 middle ───────────────────────────────────────────────────
+  [
+    {
+      name: "S2-R2a",
+      innerWalls: [[200,120,14,200],[200,120,180,14],[500,200,14,200],[360,380,140,14],[300,300,14,80]],
+      enemyDefs: [{ x:350,y:220,speed:1.4 },{ x:580,y:130,speed:1.5 },{ x:220,y:400,speed:1.3 },{ x:630,y:380,speed:1.4 }],
+      treasureDefs: [{ x:200,y:200 },{ x:650,y:430 },{ x:380,y:350 },{ x:580,y:280 }],
+      exits: [{ side:"left", toRoom:3 },{ side:"right", toRoom:5 }],
+      lasers: [
+        { x1:16, y1:310, x2:784, y2:310, phase:0.5, on:1.5, period:2.3 },
+        { x1:450, y1:16, x2:450, y2:484, phase:1.4, on:1.5, period:2.3 },
+      ],
+      movingWallDefs: [{ x:500, y:300, w:160, h:14, axis:"x", min:400, max:620, speed:1.1 }],
+    },
+    {
+      name: "S2-R2b",
+      innerWalls: [[180,200,180,14],[180,200,14,180],[480,100,180,14],[480,100,14,200],[280,360,200,14]],
+      enemyDefs: [{ x:400,y:180,speed:1.5 },{ x:220,y:380,speed:1.3 },{ x:600,y:360,speed:1.4 },{ x:350,y:420,speed:1.5 }],
+      treasureDefs: [{ x:200,y:130 },{ x:660,y:430 },{ x:400,y:300 },{ x:600,y:130 }],
+      exits: [{ side:"left", toRoom:3 },{ side:"right", toRoom:5 }],
+      lasers: [
+        { x1:16, y1:195, x2:784, y2:195, phase:0.2, on:1.5, period:2.3 },
+        { x1:350, y1:16, x2:350, y2:484, phase:1.1, on:1.5, period:2.3 },
+      ],
+      movingWallDefs: [{ x:180, y:300, w:14, h:120, axis:"y", min:240, max:364, speed:1.2 }],
+    },
+  ],
+  // ── Slot 5 · S2 final ────────────────────────────────────────────────────
+  [
+    {
+      name: "S2-R3a",
+      innerWalls: [[80,120,280,14],[80,120,14,180],[80,300,200,14],[440,200,14,220],[560,330,200,14]],
+      enemyDefs: [{ x:300,y:220,speed:1.4 },{ x:560,y:180,speed:1.5 },{ x:350,y:400,speed:1.3 },{ x:650,y:420,speed:1.4 }],
+      treasureDefs: [{ x:200,y:80 },{ x:400,y:100 },{ x:530,y:450 },{ x:700,y:260 },{ x:160,y:400 }],
+      exits: [{ side:"left", toRoom:4 }],
+      lasers: [
+        { x1:16, y1:310, x2:784, y2:310, phase:0.3, on:1.5, period:2.3 },
+        { x1:500, y1:16, x2:500, y2:484, phase:1.2, on:1.5, period:2.3 },
+      ],
+      movingWallDefs: [{ x:300, y:100, w:160, h:14, axis:"x", min:200, max:430, speed:1.2 }],
+    },
+    {
+      name: "S2-R3b",
+      innerWalls: [[200,160,220,14],[200,160,14,160],[480,260,14,200],[250,360,200,14],[580,100,160,14]],
+      enemyDefs: [{ x:400,y:200,speed:1.5 },{ x:220,y:430,speed:1.4 },{ x:620,y:200,speed:1.3 },{ x:560,y:420,speed:1.5 }],
+      treasureDefs: [{ x:180,y:100 },{ x:400,y:430 },{ x:640,y:430 },{ x:700,y:130 },{ x:300,y:300 }],
+      exits: [{ side:"left", toRoom:4 }],
+      lasers: [
+        { x1:16, y1:170, x2:784, y2:170, phase:0.7, on:1.5, period:2.3 },
+        { x1:380, y1:16, x2:380, y2:484, phase:1.5, on:1.5, period:2.3 },
+      ],
+      movingWallDefs: [{ x:480, y:200, w:14, h:120, axis:"y", min:160, max:320, speed:1.3 }],
+    },
+  ],
+  // ── Slot 6 · S3 entry ────────────────────────────────────────────────────
+  [
+    {
+      name: "S3-R1a",
+      innerWalls: [[200,80,14,260],[200,80,180,14],[520,220,14,160],[300,360,180,14],[560,100,160,14]],
+      enemyDefs: [{ x:400,y:200,speed:1.9 },{ x:580,y:400,speed:2.0 },{ x:350,y:420,speed:1.8 },{ x:640,y:200,speed:2.1 },{ x:280,y:180,speed:1.9 }],
+      treasureDefs: [{ x:200,y:430 },{ x:390,y:55 },{ x:660,y:150 },{ x:610,y:440 },{ x:680,y:310 }],
+      exits: [{ side:"right", toRoom:7 }],
+      lasers: [
+        { x1:16, y1:165, x2:784, y2:165, phase:0,   on:1.8, period:2.5 },
+        { x1:400, y1:16, x2:400, y2:484, phase:0.7, on:1.8, period:2.5 },
+        { x1:16, y1:370, x2:784, y2:370, phase:1.5, on:1.8, period:2.5 },
+      ],
+      movingWallDefs: [
+        { x:200, y:250, w:160, h:14, axis:"x", min:200, max:520, speed:1.5 },
+        { x:540, y:150, w:14, h:120, axis:"y", min:100, max:300, speed:1.8 },
+      ],
+    },
+    {
+      name: "S3-R1b",
+      innerWalls: [[160,140,200,14],[160,140,14,200],[500,200,14,200],[280,370,200,14],[550,100,14,160]],
+      enemyDefs: [{ x:350,y:200,speed:2.0 },{ x:620,y:380,speed:1.9 },{ x:280,y:400,speed:2.1 },{ x:630,y:200,speed:1.8 },{ x:430,y:420,speed:2.0 }],
+      treasureDefs: [{ x:180,y:430 },{ x:400,y:80 },{ x:680,y:130 },{ x:600,y:450 },{ x:260,y:300 }],
+      exits: [{ side:"right", toRoom:7 }],
+      lasers: [
+        { x1:16, y1:200, x2:784, y2:200, phase:0.3, on:1.8, period:2.5 },
+        { x1:300, y1:16, x2:300, y2:484, phase:1.0, on:1.8, period:2.5 },
+        { x1:16, y1:380, x2:784, y2:380, phase:1.6, on:1.8, period:2.5 },
+      ],
+      movingWallDefs: [
+        { x:380, y:280, w:180, h:14, axis:"x", min:300, max:560, speed:1.6 },
+        { x:200, y:250, w:14, h:100, axis:"y", min:200, max:380, speed:1.5 },
+      ],
+    },
+  ],
+  // ── Slot 7 · S3 middle ───────────────────────────────────────────────────
+  [
+    {
+      name: "S3-R2a",
+      innerWalls: [[160,180,200,14],[160,80,14,200],[420,280,14,180],[420,280,200,14],[580,100,14,200],[240,370,160,14]],
+      enemyDefs: [{ x:300,y:200,speed:2.0 },{ x:220,y:400,speed:1.9 },{ x:560,y:200,speed:2.1 },{ x:640,y:400,speed:2.0 },{ x:400,y:430,speed:1.8 }],
+      treasureDefs: [{ x:200,y:130 },{ x:280,y:310 },{ x:680,y:240 },{ x:360,y:450 },{ x:540,y:80 }],
+      exits: [{ side:"left", toRoom:6 },{ side:"right", toRoom:8 }],
+      lasers: [
+        { x1:16, y1:185, x2:784, y2:185, phase:0.2, on:1.8, period:2.5 },
+        { x1:500, y1:16, x2:500, y2:484, phase:0.9, on:1.8, period:2.5 },
+        { x1:16, y1:380, x2:784, y2:380, phase:1.6, on:1.8, period:2.5 },
+      ],
+      movingWallDefs: [
+        { x:300, y:160, w:160, h:14, axis:"x", min:200, max:420, speed:1.6 },
+        { x:580, y:280, w:14, h:100, axis:"y", min:220, max:364, speed:1.7 },
+      ],
+    },
+    {
+      name: "S3-R2b",
+      innerWalls: [[200,200,180,14],[200,100,14,200],[460,300,14,180],[350,380,180,14],[580,100,14,200]],
+      enemyDefs: [{ x:360,y:170,speed:2.0 },{ x:220,y:420,speed:2.1 },{ x:540,y:200,speed:1.9 },{ x:660,y:400,speed:2.0 },{ x:420,y:430,speed:1.8 }],
+      treasureDefs: [{ x:200,y:140 },{ x:660,y:130 },{ x:310,y:310 },{ x:400,y:450 },{ x:560,y:420 }],
+      exits: [{ side:"left", toRoom:6 },{ side:"right", toRoom:8 }],
+      lasers: [
+        { x1:16, y1:210, x2:784, y2:210, phase:0.5, on:1.8, period:2.5 },
+        { x1:300, y1:16, x2:300, y2:484, phase:1.2, on:1.8, period:2.5 },
+        { x1:16, y1:360, x2:784, y2:360, phase:1.9, on:1.8, period:2.5 },
+      ],
+      movingWallDefs: [
+        { x:420, y:200, w:160, h:14, axis:"x", min:350, max:600, speed:1.5 },
+        { x:200, y:280, w:14, h:100, axis:"y", min:240, max:384, speed:1.8 },
+      ],
+    },
+  ],
+  // ── Slot 8 · S3 final ────────────────────────────────────────────────────
+  [
+    {
+      name: "S3-R3a",
+      innerWalls: [[180,120,260,14],[180,120,14,180],[180,300,160,14],[480,200,14,180],[480,370,200,14],[560,100,14,100]],
+      enemyDefs: [{ x:380,y:200,speed:2.1 },{ x:220,y:380,speed:2.0 },{ x:600,y:180,speed:2.2 },{ x:560,y:430,speed:2.0 },{ x:380,y:420,speed:1.9 }],
+      treasureDefs: [{ x:200,y:80 },{ x:430,y:80 },{ x:700,y:430 },{ x:260,y:390 },{ x:560,y:460 },{ x:680,y:300 }],
+      exits: [{ side:"left", toRoom:7 }],
+      lasers: [
+        { x1:16, y1:150, x2:784, y2:150, phase:0,   on:1.8, period:2.5 },
+        { x1:450, y1:16, x2:450, y2:484, phase:0.8, on:1.8, period:2.5 },
+        { x1:16, y1:350, x2:784, y2:350, phase:1.4, on:1.8, period:2.5 },
+      ],
+      movingWallDefs: [
+        { x:300, y:240, w:180, h:14, axis:"x", min:200, max:480, speed:1.7 },
+        { x:180, y:280, w:14, h:100, axis:"y", min:220, max:380, speed:1.8 },
+      ],
+    },
+    {
+      name: "S3-R3b",
+      innerWalls: [[160,140,280,14],[160,140,14,160],[160,300,170,14],[460,200,14,180],[460,360,200,14],[540,100,14,100]],
+      enemyDefs: [{ x:360,y:200,speed:2.0 },{ x:220,y:400,speed:2.2 },{ x:580,y:170,speed:2.1 },{ x:540,y:440,speed:2.0 },{ x:400,y:400,speed:1.9 }],
+      treasureDefs: [{ x:180,y:80 },{ x:400,y:80 },{ x:680,y:450 },{ x:260,y:390 },{ x:540,y:460 },{ x:700,y:290 }],
+      exits: [{ side:"left", toRoom:7 }],
+      lasers: [
+        { x1:16, y1:170, x2:784, y2:170, phase:0.2, on:1.8, period:2.5 },
+        { x1:330, y1:16, x2:330, y2:484, phase:0.9, on:1.8, period:2.5 },
+        { x1:16, y1:380, x2:784, y2:380, phase:1.5, on:1.8, period:2.5 },
+      ],
+      movingWallDefs: [
+        { x:380, y:260, w:180, h:14, axis:"x", min:280, max:520, speed:1.8 },
+        { x:460, y:280, w:14, h:100, axis:"y", min:240, max:384, speed:1.6 },
+      ],
+    },
+  ],
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -260,12 +323,17 @@ export default function GamePage() {
     let continueCountdown = 10;
     let continueLastTick  = 0;
 
+    let rooms      = makeRooms();
     let roomStates = makeRoomStates();
 
+    function makeRooms() {
+      return ROOM_POOLS.map(pool => pool[Math.floor(Math.random() * pool.length)]);
+    }
     function makeRoomStates() {
-      return ROOMS.map(r => ({
-        enemies:   r.enemyDefs.map(e => ({ ...e, dir: 1, speed: e.speed * 1.4 })),
-        treasures: r.treasureDefs.map(t => ({ ...t, collected: false })),
+      return rooms.map(r => ({
+        enemies:     r.enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0 })),
+        treasures:   r.treasureDefs.map(t => ({ ...t, collected: false })),
+        movingWalls: (r.movingWallDefs ?? []).map(mw => ({ ...mw, dir: 1 })),
       }));
     }
 
@@ -278,7 +346,7 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = [1.2, 1.8, 2.4][idx];
+      daemon.speed  = [0.6, 1.0, 1.5][idx];
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
@@ -453,7 +521,7 @@ export default function GamePage() {
     }
 
     function buildWalls(idx) {
-      const room  = ROOMS[idx];
+      const room  = rooms[idx];
       const exits = new Set(room.exits.map(e => e.side));
       const out   = [];
       const borders = [
@@ -477,6 +545,7 @@ export default function GamePage() {
         }
       }
       for (const [x, y, w, h] of room.innerWalls) out.push({ x, y, w, h });
+      for (const mw of (roomStates[idx]?.movingWalls ?? [])) out.push({ x: mw.x, y: mw.y, w: mw.w, h: mw.h });
       return out;
     }
 
@@ -500,7 +569,7 @@ export default function GamePage() {
 
     function checkDoors() {
       const hw = DOOR_W / 2;
-      for (const exit of ROOMS[roomIdx].exits) {
+      for (const exit of rooms[roomIdx].exits) {
         const { side, toRoom } = exit;
         if (side === "right" && player.x > W - WALL - 3  && Math.abs(player.y - MY) < hw) { enterRoom(toRoom, "left");  return; }
         if (side === "left"  && player.x < WALL + 3      && Math.abs(player.y - MY) < hw) { enterRoom(toRoom, "right"); return; }
@@ -537,8 +606,9 @@ export default function GamePage() {
       const [s3Start, s3End] = SECTOR_RANGES[2];
       for (let i = s3Start; i < s3End; i++) {
         roomStates[i] = {
-          enemies:   ROOMS[i].enemyDefs.map(e => ({ ...e, dir: 1, speed: e.speed * 1.4 })),
-          treasures: ROOMS[i].treasureDefs.map(t => ({ ...t, collected: false })),
+          enemies:     rooms[i].enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0 })),
+          treasures:   rooms[i].treasureDefs.map(t => ({ ...t, collected: false })),
+          movingWalls: (rooms[i].movingWallDefs ?? []).map(mw => ({ ...mw, dir: 1 })),
         };
       }
       enterSector(2);
@@ -586,12 +656,30 @@ export default function GamePage() {
 
       const rs = roomStates[roomIdx];
       for (const e of rs.enemies) {
-        if (e.axis === "x") {
-          e.x += e.speed * e.dir;
-          if (e.x >= e.max || e.x <= e.min) { e.dir *= -1; e.x = Math.max(e.min, Math.min(e.max, e.x)); }
+        if (--e.wanderTimer <= 0) {
+          const ang = Math.random() * Math.PI * 2;
+          e.vx = Math.cos(ang) * e.speed;
+          e.vy = Math.sin(ang) * e.speed;
+          e.wanderTimer = 60 + Math.floor(Math.random() * 120);
+        }
+        const nx = e.x + e.vx, ny = e.y + e.vy;
+        const eRect = { x: nx - E_SZ/2, y: ny - E_SZ/2, w: E_SZ, h: E_SZ };
+        let blocked = false;
+        for (const w of walls) { if (overlap(eRect, w)) { blocked = true; break; } }
+        if (blocked) {
+          const ang = Math.random() * Math.PI * 2;
+          e.vx = Math.cos(ang) * e.speed;
+          e.vy = Math.sin(ang) * e.speed;
+          e.wanderTimer = 60 + Math.floor(Math.random() * 120);
+        } else { e.x = nx; e.y = ny; }
+      }
+      for (const mw of rs.movingWalls) {
+        if (mw.axis === "x") {
+          mw.x += mw.speed * mw.dir;
+          if (mw.x >= mw.max || mw.x <= mw.min) { mw.dir *= -1; mw.x = Math.max(mw.min, Math.min(mw.max, mw.x)); }
         } else {
-          e.y += e.speed * e.dir;
-          if (e.y >= e.max || e.y <= e.min) { e.dir *= -1; e.y = Math.max(e.min, Math.min(e.max, e.y)); }
+          mw.y += mw.speed * mw.dir;
+          if (mw.y >= mw.max || mw.y <= mw.min) { mw.dir *= -1; mw.y = Math.max(mw.min, Math.min(mw.max, mw.y)); }
         }
       }
 
@@ -607,8 +695,9 @@ export default function GamePage() {
         }
         if (!hit) {
           const tSec = performance.now() / 1000;
-          for (const L of (ROOMS[roomIdx].lasers ?? [])) {
-            const on = ((tSec + L.phase) % LASER_PERIOD) < LASER_ON;
+          for (const L of (rooms[roomIdx].lasers ?? [])) {
+            const laserOn = L.on ?? LASER_ON, laserPer = L.period ?? LASER_PERIOD;
+            const on = ((tSec + L.phase) % laserPer) < laserOn;
             if (!on) continue;
             const horiz = L.y1 === L.y2;
             const lr = horiz
@@ -619,7 +708,7 @@ export default function GamePage() {
         }
         if (hit) {
           lives--;
-          iframes = 90;
+          iframes = 12;
           shakeFrames = 14;
           sndDeath();
           if (lives <= 0) { triggerGameOver(); return; }
@@ -825,7 +914,7 @@ export default function GamePage() {
       const localRoom = roomIdx - SECTOR_RANGES[sectorIdx][0];
       ctx.textAlign = "right";
       ctx.fillStyle = DIM;
-      ctx.fillText(ROOMS[roomIdx].name, W - 16, 24);
+      ctx.fillText(rooms[roomIdx].name, W - 16, 24);
       ctx.fillStyle = GREEN;
       ctx.fillText(`SEC ${sectorIdx + 1}/3  RM ${localRoom + 1}/3`, W - 16, 46);
 
@@ -835,7 +924,7 @@ export default function GamePage() {
     // ── Room ────────────────────────────────────────────────────────────────
     function drawRoom(t) {
       const walls = buildWalls(roomIdx);
-      const room  = ROOMS[roomIdx];
+      const room  = rooms[roomIdx];
 
       ctx.strokeStyle = "rgba(0,255,160,0.05)";
       ctx.lineWidth = 0.5;
@@ -857,6 +946,18 @@ export default function GamePage() {
           ctx.lineTo(w.x, w.y + Math.min(i, w.h - 1));
           ctx.stroke();
         }
+      }
+
+      for (const mw of roomStates[roomIdx].movingWalls) {
+        ctx.fillStyle = "#1f1a06";
+        ctx.fillRect(mw.x, mw.y, mw.w, mw.h);
+        ctx.strokeStyle = "#ff8030";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(mw.x, mw.y, mw.w, mw.h);
+        ctx.shadowColor = "#ff8030";
+        ctx.shadowBlur = 6;
+        ctx.strokeRect(mw.x, mw.y, mw.w, mw.h);
+        ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
       }
 
       const pulse = Math.sin(t / 600) * 0.12 + 0.18;
@@ -885,8 +986,9 @@ export default function GamePage() {
     // ── Lasers ──────────────────────────────────────────────────────────────
     function drawLasers(t) {
       const tSec = t / 1000;
-      for (const L of (ROOMS[roomIdx].lasers ?? [])) {
-        const on = ((tSec + L.phase) % LASER_PERIOD) < LASER_ON;
+      for (const L of (rooms[roomIdx].lasers ?? [])) {
+        const laserOn = L.on ?? LASER_ON, laserPer = L.period ?? LASER_PERIOD;
+        const on = ((tSec + L.phase) % laserPer) < laserOn;
         const pulse = Math.sin(t / 180) * 0.3 + 0.7;
         ctx.save();
         if (on) {
@@ -966,9 +1068,8 @@ export default function GamePage() {
         ctx.fillStyle = "#ff3060";
         ctx.fillRect(e.x - 5, e.y - 4, 3, 3);
         ctx.fillRect(e.x + 2, e.y - 4, 3, 3);
-        const pipX = e.axis === "x" ? e.x + (e.dir > 0 ? s + 3 : -s - 5) : e.x;
-        const pipY = e.axis === "y" ? e.y + (e.dir > 0 ? s + 3 : -s - 5) : e.y;
-        ctx.fillRect(pipX, pipY, 2, 2);
+        const spd = Math.sqrt(e.vx * e.vx + e.vy * e.vy) || 1;
+        ctx.fillRect(e.x + (e.vx / spd) * (s + 4) - 1, e.y + (e.vy / spd) * (s + 4) - 1, 2, 2);
       }
     }
 
@@ -1206,10 +1307,12 @@ export default function GamePage() {
 
     // ── Restart ─────────────────────────────────────────────────────────────
     function restart() {
+      rooms      = makeRooms();
       phase      = "playing";
       sectorIdx  = 0;
       score      = 0;
       lives      = 3;
+      checkpoint = null;
       roomStates = makeRoomStates();
       enterSector(0);
     }
