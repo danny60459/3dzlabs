@@ -312,9 +312,10 @@ export default function GamePage() {
     let lives     = 3;
     let timer     = SECTOR_TIMERS[0];
     let lastTick  = performance.now();
-    let iframes     = 0;
-    let shakeFrames = 0;
-    let audioCtx    = null;
+    let iframes              = 0;
+    let touchingLaserIndices = new Set();
+    let shakeFrames          = 0;
+    let audioCtx             = null;
 
     const player = { x: WALL + 34, y: MY };
     const daemon  = { x: 0, y: 0, active: false, speed: 1.2, spawnAge: 0 };
@@ -331,7 +332,7 @@ export default function GamePage() {
     }
     function makeRoomStates() {
       return rooms.map(r => ({
-        enemies:     r.enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0 })),
+        enemies:     r.enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0, lastX: e.x, lastY: e.y, stuckCount: 0 })),
         treasures:   r.treasureDefs.map(t => ({ ...t, collected: false })),
         movingWalls: (r.movingWallDefs ?? []).map(mw => ({ ...mw, dir: 1 })),
       }));
@@ -342,7 +343,8 @@ export default function GamePage() {
       roomIdx       = SECTOR_RANGES[idx][0];
       timer         = SECTOR_TIMERS[idx];
       lastTick      = performance.now();
-      iframes       = 0;
+      iframes              = 120;
+      touchingLaserIndices = new Set();
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
@@ -584,6 +586,8 @@ export default function GamePage() {
       if (fromSide === "right") { player.x = W - WALL - P_SZ;  player.y = MY; }
       if (fromSide === "up")    { player.x = MX; player.y = WALL + P_SZ; }
       if (fromSide === "down")  { player.x = MX; player.y = GH - WALL - P_SZ; }
+      iframes              = 120;
+      touchingLaserIndices = new Set();
       if (daemon.active) {
         daemon.x = WALL + 8;
         daemon.y = WALL + 8;
@@ -593,11 +597,14 @@ export default function GamePage() {
 
     // ── Update ─────────────────────────────────────────────────────────────
     function triggerGameOver() {
-      if (sectorIdx === 2 && checkpoint && !checkpoint.used) {
-        phase = "continue"; continueCountdown = 10; continueLastTick = performance.now();
-      } else {
-        phase = "gameover";
+      if (sectorIdx === 2) {
+        if (!checkpoint) checkpoint = { score, lives };
+        if (!checkpoint.used) {
+          phase = "continue"; continueCountdown = 10; continueLastTick = performance.now();
+          return;
+        }
       }
+      phase = "gameover";
     }
 
     function useContinue() {
@@ -672,6 +679,18 @@ export default function GamePage() {
           e.vy = Math.sin(ang) * e.speed;
           e.wanderTimer = 60 + Math.floor(Math.random() * 120);
         } else { e.x = nx; e.y = ny; }
+        e.stuckCount++;
+        if (e.stuckCount >= 120) {
+          const moved = Math.sqrt((e.x - e.lastX) ** 2 + (e.y - e.lastY) ** 2);
+          if (moved < 5) {
+            e.x = W / 2 + (Math.random() - 0.5) * 220;
+            e.y = GH / 2 + (Math.random() - 0.5) * 160;
+            e.x = Math.max(WALL + E_SZ + 10, Math.min(W - WALL - E_SZ - 10, e.x));
+            e.y = Math.max(WALL + E_SZ + 10, Math.min(GH - WALL - E_SZ - 10, e.y));
+            e.vx = 0; e.vy = 0; e.wanderTimer = 0;
+          }
+          e.lastX = e.x; e.lastY = e.y; e.stuckCount = 0;
+        }
       }
       for (const mw of rs.movingWalls) {
         if (mw.axis === "x") {
@@ -693,22 +712,25 @@ export default function GamePage() {
             hit = true; break;
           }
         }
-        if (!hit) {
-          const tSec = performance.now() / 1000;
-          for (const L of (rooms[roomIdx].lasers ?? [])) {
-            const laserOn = L.on ?? LASER_ON, laserPer = L.period ?? LASER_PERIOD;
-            const on = ((tSec + L.phase) % laserPer) < laserOn;
-            if (!on) continue;
-            const horiz = L.y1 === L.y2;
-            const lr = horiz
-              ? { x: L.x1, y: L.y1 - 3, w: L.x2 - L.x1, h: 6 }
-              : { x: L.x1 - 3, y: L.y1, w: 6, h: L.y2 - L.y1 };
-            if (overlap(pr, lr)) { hit = true; break; }
+        const tSec = performance.now() / 1000;
+        const lasers = rooms[roomIdx].lasers ?? [];
+        for (let li = 0; li < lasers.length; li++) {
+          const L = lasers[li];
+          const laserOn = L.on ?? LASER_ON, laserPer = L.period ?? LASER_PERIOD;
+          const on = ((tSec + L.phase) % laserPer) < laserOn;
+          const horiz = L.y1 === L.y2;
+          const lr = horiz
+            ? { x: L.x1, y: L.y1 - 3, w: L.x2 - L.x1, h: 6 }
+            : { x: L.x1 - 3, y: L.y1, w: 6, h: L.y2 - L.y1 };
+          if (on && overlap(pr, lr)) {
+            if (!touchingLaserIndices.has(li)) { touchingLaserIndices.add(li); hit = true; }
+          } else {
+            touchingLaserIndices.delete(li);
           }
         }
         if (hit) {
           lives--;
-          iframes = 12;
+          iframes = 120;
           shakeFrames = 14;
           sndDeath();
           if (lives <= 0) { triggerGameOver(); return; }
@@ -747,7 +769,7 @@ export default function GamePage() {
         const dScale = canvas.width / 800;
         daemon.x += (dx / dist) * daemon.speed / dScale;
         daemon.y += (dy / dist) * daemon.speed / dScale;
-        if (overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
+        if (iframes <= 0 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
           sndDeath(); shakeFrames = 22;
           triggerGameOver();
         }
@@ -1351,11 +1373,10 @@ export default function GamePage() {
   }, []);
 
   // ── Orientation & side state ───────────────────────────────────────────────
-  const [isLandscape,  setIsLandscape]  = useState(false);
-  const [padSide,      setPadSide]      = useState("right");
-  const [stickPos,     setStickPos]     = useState({ x: 0, y: 0 });
-  const [stickActive,  setStickActive]  = useState(false);
-  const activePtrId = useRef(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [padSide,     setPadSide]     = useState("right");
+  const activePtrId    = useRef(null);
+  const touchOriginRef = useRef(null);
 
   useEffect(() => {
     const check = () => setIsLandscape(window.innerWidth > window.innerHeight);
@@ -1364,14 +1385,8 @@ export default function GamePage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // ── Joystick helpers ───────────────────────────────────────────────────────
+  // ── Trackpad helpers ──────────────────────────────────────────────────────
   const DEAD_ZONE = 16;
-  const MAX_DIST  = 58;
-
-  const clampStick = (dx, dy) => {
-    const d = Math.sqrt(dx * dx + dy * dy);
-    return d <= MAX_DIST ? { x: dx, y: dy } : { x: (dx / d) * MAX_DIST, y: (dy / d) * MAX_DIST };
-  };
 
   const pushDirection = (dx, dy) => {
     const keys = keysRef.current;
@@ -1392,151 +1407,81 @@ export default function GamePage() {
     else                                  { keys["ArrowRight"] = true; keys["ArrowUp"]    = true; }
   };
 
-  const clearStick = () => {
-    activePtrId.current = null;
-    setStickPos({ x: 0, y: 0 });
-    setStickActive(false);
-    const keys = keysRef.current;
-    keys["ArrowUp"] = keys["ArrowDown"] = keys["ArrowLeft"] = keys["ArrowRight"] = false;
-  };
-
-  const getDelta = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    return {
-      dx: e.clientX - (rect.left + rect.width  / 2),
-      dy: e.clientY - (rect.top  + rect.height / 2),
-    };
-  };
-
-  const onJoyDown = (e) => {
+  const onTrackDown = (e) => {
     e.preventDefault();
     if (activePtrId.current !== null) return;
     activePtrId.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const { dx, dy } = getDelta(e);
-    setStickPos(clampStick(dx, dy));
-    setStickActive(true);
-    pushDirection(dx, dy);
+    touchOriginRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  const onJoyMove = (e) => {
+  const onTrackMove = (e) => {
     e.preventDefault();
-    if (e.pointerId !== activePtrId.current) return;
-    const { dx, dy } = getDelta(e);
-    setStickPos(clampStick(dx, dy));
-    pushDirection(dx, dy);
+    if (e.pointerId !== activePtrId.current || !touchOriginRef.current) return;
+    pushDirection(e.clientX - touchOriginRef.current.x, e.clientY - touchOriginRef.current.y);
   };
 
-  const onJoyUp = (e) => {
+  const onTrackUp = (e) => {
     if (e.pointerId !== activePtrId.current) return;
-    clearStick();
+    activePtrId.current    = null;
+    touchOriginRef.current = null;
+    const keys = keysRef.current;
+    keys["ArrowUp"] = keys["ArrowDown"] = keys["ArrowLeft"] = keys["ArrowRight"] = false;
   };
 
-  // ── Control panel (joystick + swap button) ─────────────────────────────────
-  const ZONE = 168;
+  // ── Trackpad zone + swap button ────────────────────────────────────────────
+  const TRACK_W = 160;
 
-  const controlPanel = (
-    <div style={{
-      display:        "flex",
-      flexDirection:  "column",
-      alignItems:     isLandscape ? (padSide === "right" ? "flex-start" : "flex-end") : "center",
-      justifyContent: "center",
-      gap:            "10px",
-      padding:        isLandscape ? "8px 12px" : "10px 8px 4px",
-      flexShrink:     0,
-    }}>
-      {/* Joystick zone */}
-      <div
-        onPointerDown={onJoyDown}
-        onPointerMove={onJoyMove}
-        onPointerUp={onJoyUp}
-        onPointerCancel={onJoyUp}
-        style={{
-          position:     "relative",
-          width:        `${ZONE}px`,
-          height:       `${ZONE}px`,
-          borderRadius: "50%",
-          background:   "rgba(0,255,160,0.05)",
-          border:       `1px solid rgba(0,255,160,${stickActive ? "0.55" : "0.28"})`,
-          boxShadow:    stickActive
-            ? "0 0 22px rgba(0,255,160,0.22), inset 0 0 28px rgba(0,255,160,0.07)"
-            : "0 0 12px rgba(0,255,160,0.10), inset 0 0 18px rgba(0,255,160,0.04)",
-          touchAction:  "none",
-          userSelect:   "none",
-          cursor:       "crosshair",
-          transition:   "border-color 0.1s, box-shadow 0.1s",
-        }}
-      >
-        {/* Cardinal hint arrows */}
-        {[
-          { lbl: "▲", s: { top:    "7px", left: "50%", transform: "translateX(-50%)" } },
-          { lbl: "▼", s: { bottom: "7px", left: "50%", transform: "translateX(-50%)" } },
-          { lbl: "◄", s: { left:   "7px", top:  "50%", transform: "translateY(-50%)" } },
-          { lbl: "►", s: { right:  "7px", top:  "50%", transform: "translateY(-50%)" } },
-        ].map(({ lbl, s }) => (
-          <span key={lbl} style={{
-            position:      "absolute",
-            color:         `rgba(0,255,160,${stickActive ? "0.18" : "0.30"})`,
-            fontSize:      "11px",
-            fontFamily:    "monospace",
-            pointerEvents: "none",
-            lineHeight:    1,
-            transition:    "color 0.1s",
-            ...s,
-          }}>{lbl}</span>
-        ))}
-
-        {/* Centre ring */}
-        <div style={{
-          position:      "absolute",
-          top: "50%", left: "50%",
-          transform:     "translate(-50%, -50%)",
-          width:         "8px",
-          height:        "8px",
-          borderRadius:  "50%",
-          border:        "1px solid rgba(0,255,160,0.35)",
-          pointerEvents: "none",
-        }} />
-
-        {/* Thumb nub */}
-        <div style={{
-          position:      "absolute",
-          top:           `calc(50% + ${stickPos.y}px)`,
-          left:          `calc(50% + ${stickPos.x}px)`,
-          transform:     "translate(-50%, -50%)",
-          width:         "36px",
-          height:        "36px",
-          borderRadius:  "50%",
-          background:    stickActive ? "rgba(0,255,160,0.28)" : "rgba(0,255,160,0.12)",
-          border:        `1.5px solid rgba(0,255,160,${stickActive ? "0.85" : "0.40"})`,
-          boxShadow:     stickActive
-            ? "0 0 20px rgba(0,255,160,0.65), 0 0 6px rgba(0,255,160,0.9)"
-            : "0 0 8px rgba(0,255,160,0.25)",
-          transition:    stickActive ? "none" : "all 0.18s cubic-bezier(0.22,1,0.36,1)",
-          pointerEvents: "none",
-        }} />
-      </div>
-
-      {/* Handedness swap button */}
-      <button
-        onClick={() => setPadSide(s => s === "right" ? "left" : "right")}
-        style={{
-          background:    "rgba(0,255,160,0.05)",
-          border:        "1px solid rgba(0,255,160,0.25)",
-          color:         "rgba(0,255,160,0.5)",
-          fontFamily:    "monospace",
-          fontSize:      "9px",
-          padding:       "5px 12px",
-          borderRadius:  "3px",
-          cursor:        "pointer",
-          letterSpacing: "2px",
-          touchAction:   "manipulation",
-          WebkitTapHighlightColor: "transparent",
-        }}
-      >
-        {padSide === "right" ? "◄ LEFTY" : "RIGHTY ►"}
-      </button>
+  const trackpadEl = (
+    <div
+      onPointerDown={onTrackDown}
+      onPointerMove={onTrackMove}
+      onPointerUp={onTrackUp}
+      onPointerCancel={onTrackUp}
+      style={{
+        flex:           "1 1 0",
+        minHeight:      "120px",
+        border:         "1px dashed rgba(0,255,160,0.32)",
+        background:     "rgba(0,255,160,0.018)",
+        touchAction:    "none",
+        userSelect:     "none",
+        cursor:         "crosshair",
+        display:        "flex",
+        alignItems:     "center",
+        justifyContent: "center",
+        boxSizing:      "border-box",
+      }}
+    >
+      <span style={{
+        color:         "rgba(0,255,160,0.18)",
+        fontFamily:    "monospace",
+        fontSize:      "10px",
+        letterSpacing: "3px",
+        pointerEvents: "none",
+      }}>SWIPE</span>
     </div>
+  );
+
+  const swapBtn = (
+    <button
+      onClick={() => setPadSide(s => s === "right" ? "left" : "right")}
+      style={{
+        background:    "rgba(0,255,160,0.05)",
+        border:        "1px solid rgba(0,255,160,0.22)",
+        color:         "rgba(0,255,160,0.48)",
+        fontFamily:    "monospace",
+        fontSize:      "9px",
+        padding:       "5px 12px",
+        borderRadius:  "3px",
+        cursor:        "pointer",
+        letterSpacing: "2px",
+        touchAction:   "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        flexShrink:    0,
+      }}
+    >
+      {padSide === "right" ? "◄ LEFTY" : "RIGHTY ►"}
+    </button>
   );
 
   // ── Canvas sizing ──────────────────────────────────────────────────────────
@@ -1544,10 +1489,11 @@ export default function GamePage() {
     display:        "block",
     border:         "1px solid #00ffa0",
     imageRendering: "pixelated",
-    maxWidth:       isLandscape ? `calc(100vw - ${ZONE + 48}px)` : "100%",
-    maxHeight:      isLandscape ? "100svh" : `calc(100svh - ${ZONE + 80}px)`,
+    maxWidth:       isLandscape ? `calc(100vw - ${TRACK_W + 8}px)` : "100%",
+    maxHeight:      isLandscape ? "100svh" : "calc(100svh - 200px)",
     width:          "auto",
     height:         "auto",
+    flexShrink:     0,
     touchAction:    "none",
   };
 
@@ -1557,41 +1503,46 @@ export default function GamePage() {
       background:     "#03050f",
       display:        "flex",
       flexDirection:  isLandscape ? "row" : "column",
-      alignItems:     "center",
-      justifyContent: "center",
-      padding:        isLandscape ? "4px" : "6px 4px",
-      gap:            isLandscape ? "0" : "0",
+      alignItems:     isLandscape ? "stretch" : "center",
+      justifyContent: "flex-start",
+      padding:        "0",
       boxSizing:      "border-box",
       overflow:       "hidden",
     }}>
-      {/* Header — portrait only */}
+      {/* Portrait header */}
       {!isLandscape && (
-        <div style={{ marginBottom: "6px", fontFamily: "monospace", color: "#00ffa0", fontSize: "10px", letterSpacing: "3px", textAlign: "center" }}>
+        <div style={{ padding: "6px 4px 4px", fontFamily: "monospace", color: "#00ffa0", fontSize: "10px", letterSpacing: "3px", textAlign: "center", flexShrink: 0 }}>
           DAEMON.EXE &nbsp;·&nbsp; 3 SECTORS · 9 ROOMS · COLLECT ALL ◆
         </div>
       )}
 
-      {/* Landscape + left-hand: controls on the left */}
-      {isLandscape && padSide === "left" && controlPanel}
+      {/* Landscape left-hand trackpad */}
+      {isLandscape && padSide === "left" && (
+        <div style={{ width: `${TRACK_W}px`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          {trackpadEl}
+          <div style={{ padding: "4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>{swapBtn}</div>
+        </div>
+      )}
 
       {/* Canvas */}
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={560}
-        style={canvasStyle}
-      />
+      <canvas ref={canvasRef} width={800} height={560} style={canvasStyle} />
 
-      {/* Landscape + right-hand (default): controls on the right */}
-      {isLandscape && padSide === "right" && controlPanel}
+      {/* Landscape right-hand trackpad */}
+      {isLandscape && padSide === "right" && (
+        <div style={{ width: `${TRACK_W}px`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          {trackpadEl}
+          <div style={{ padding: "4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>{swapBtn}</div>
+        </div>
+      )}
 
-      {/* Portrait: controls below canvas */}
-      {!isLandscape && controlPanel}
-
-      {/* Footer — portrait only */}
+      {/* Portrait controls below canvas */}
       {!isLandscape && (
-        <div style={{ marginTop: "4px", fontFamily: "monospace", color: "#00cc7a", fontSize: "10px", textAlign: "center", letterSpacing: "1px" }}>
-          ◆ LOOT &nbsp;·&nbsp; ✕ AVOID &nbsp;·&nbsp; ► EXITS &nbsp;·&nbsp; [R] RESTART
+        <div style={{ display: "flex", flexDirection: "column", alignSelf: "stretch", flex: "1 1 0" }}>
+          <div style={{ padding: "4px 0 2px", display: "flex", justifyContent: "center", flexShrink: 0 }}>{swapBtn}</div>
+          {trackpadEl}
+          <div style={{ padding: "2px 4px 4px", fontFamily: "monospace", color: "#00cc7a", fontSize: "10px", textAlign: "center", letterSpacing: "1px", flexShrink: 0 }}>
+            ◆ LOOT &nbsp;·&nbsp; ✕ AVOID &nbsp;·&nbsp; ► EXITS &nbsp;·&nbsp; [R] RESTART
+          </div>
         </div>
       )}
     </main>
