@@ -115,8 +115,8 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:160,y:130 },{ x:450,y:130 },{ x:300,y:340 },{ x:680,y:200 }],
       exits: [{ side:"right", toRoom:4 }],
       lasers: [
-        { x1:16, y1:290, x2:784, y2:290, phase:0,   on:1.5, period:2.3 },
-        { x1:320, y1:16, x2:320, y2:484, phase:1.1, on:1.5, period:2.3 },
+        { x1:16, y1:290, x2:784, y2:290, phase:0,   on:1.2, period:3.0 },
+        { x1:320, y1:16, x2:320, y2:484, phase:1.1, on:1.2, period:3.0 },
       ],
       movingWallDefs: [{ x:450, y:180, w:120, h:14, axis:"x", min:350, max:560, speed:1.2 }],
     },
@@ -127,8 +127,8 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:180,y:400 },{ x:350,y:100 },{ x:660,y:100 },{ x:500,y:430 }],
       exits: [{ side:"right", toRoom:4 }],
       lasers: [
-        { x1:16, y1:175, x2:784, y2:175, phase:0.5, on:1.5, period:2.3 },
-        { x1:550, y1:16, x2:550, y2:484, phase:1.3, on:1.5, period:2.3 },
+        { x1:16, y1:175, x2:784, y2:175, phase:0.5, on:1.2, period:3.0 },
+        { x1:550, y1:16, x2:550, y2:484, phase:1.3, on:1.2, period:3.0 },
       ],
       movingWallDefs: [{ x:200, y:280, w:14, h:100, axis:"y", min:220, max:370, speed:1.0 }],
     },
@@ -142,8 +142,8 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:200 },{ x:650,y:430 },{ x:380,y:350 },{ x:580,y:280 }],
       exits: [{ side:"left", toRoom:3 },{ side:"right", toRoom:5 }],
       lasers: [
-        { x1:16, y1:310, x2:784, y2:310, phase:0.5, on:1.5, period:2.3 },
-        { x1:450, y1:16, x2:450, y2:484, phase:1.4, on:1.5, period:2.3 },
+        { x1:16, y1:310, x2:784, y2:310, phase:0.5, on:1.2, period:3.0 },
+        { x1:450, y1:16, x2:450, y2:484, phase:1.4, on:1.2, period:3.0 },
       ],
       movingWallDefs: [{ x:500, y:300, w:160, h:14, axis:"x", min:400, max:620, speed:1.1 }],
     },
@@ -154,8 +154,8 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:130 },{ x:660,y:430 },{ x:400,y:300 },{ x:600,y:130 }],
       exits: [{ side:"left", toRoom:3 },{ side:"right", toRoom:5 }],
       lasers: [
-        { x1:16, y1:195, x2:784, y2:195, phase:0.2, on:1.5, period:2.3 },
-        { x1:350, y1:16, x2:350, y2:484, phase:1.1, on:1.5, period:2.3 },
+        { x1:16, y1:195, x2:784, y2:195, phase:0.2, on:1.2, period:3.0 },
+        { x1:350, y1:16, x2:350, y2:484, phase:1.1, on:1.2, period:3.0 },
       ],
       movingWallDefs: [{ x:180, y:300, w:14, h:120, axis:"y", min:240, max:364, speed:1.2 }],
     },
@@ -169,8 +169,8 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:80 },{ x:400,y:100 },{ x:530,y:450 },{ x:700,y:260 },{ x:160,y:400 }],
       exits: [{ side:"left", toRoom:4 }],
       lasers: [
-        { x1:16, y1:310, x2:784, y2:310, phase:0.3, on:1.5, period:2.3 },
-        { x1:500, y1:16, x2:500, y2:484, phase:1.2, on:1.5, period:2.3 },
+        { x1:16, y1:310, x2:784, y2:310, phase:0.3, on:1.2, period:3.0 },
+        { x1:500, y1:16, x2:500, y2:484, phase:1.2, on:1.2, period:3.0 },
       ],
       movingWallDefs: [{ x:300, y:100, w:160, h:14, axis:"x", min:200, max:430, speed:1.2 }],
     },
@@ -181,8 +181,8 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:180,y:100 },{ x:400,y:430 },{ x:640,y:430 },{ x:700,y:130 },{ x:300,y:300 }],
       exits: [{ side:"left", toRoom:4 }],
       lasers: [
-        { x1:16, y1:170, x2:784, y2:170, phase:0.7, on:1.5, period:2.3 },
-        { x1:380, y1:16, x2:380, y2:484, phase:1.5, on:1.5, period:2.3 },
+        { x1:16, y1:170, x2:784, y2:170, phase:0.7, on:1.2, period:3.0 },
+        { x1:380, y1:16, x2:380, y2:484, phase:1.5, on:1.2, period:3.0 },
       ],
       movingWallDefs: [{ x:480, y:200, w:14, h:120, axis:"y", min:160, max:320, speed:1.3 }],
     },
@@ -196,9 +196,9 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:430 },{ x:390,y:55 },{ x:660,y:150 },{ x:610,y:440 },{ x:680,y:310 }],
       exits: [{ side:"right", toRoom:7 }],
       lasers: [
-        { x1:16, y1:165, x2:784, y2:165, phase:0,   on:1.8, period:2.5 },
-        { x1:400, y1:16, x2:400, y2:484, phase:0.7, on:1.8, period:2.5 },
-        { x1:16, y1:370, x2:784, y2:370, phase:1.5, on:1.8, period:2.5 },
+        { x1:16, y1:165, x2:784, y2:165, phase:0,   on:1.2, period:3.0 },
+        { x1:400, y1:16, x2:400, y2:484, phase:0.7, on:1.2, period:3.0 },
+        { x1:16, y1:370, x2:784, y2:370, phase:1.5, on:1.2, period:3.0 },
       ],
       movingWallDefs: [
         { x:200, y:250, w:160, h:14, axis:"x", min:200, max:520, speed:1.5 },
@@ -212,9 +212,9 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:180,y:430 },{ x:400,y:80 },{ x:680,y:130 },{ x:600,y:450 },{ x:260,y:300 }],
       exits: [{ side:"right", toRoom:7 }],
       lasers: [
-        { x1:16, y1:200, x2:784, y2:200, phase:0.3, on:1.8, period:2.5 },
-        { x1:300, y1:16, x2:300, y2:484, phase:1.0, on:1.8, period:2.5 },
-        { x1:16, y1:380, x2:784, y2:380, phase:1.6, on:1.8, period:2.5 },
+        { x1:16, y1:200, x2:784, y2:200, phase:0.3, on:1.2, period:3.0 },
+        { x1:300, y1:16, x2:300, y2:484, phase:1.0, on:1.2, period:3.0 },
+        { x1:16, y1:380, x2:784, y2:380, phase:1.6, on:1.2, period:3.0 },
       ],
       movingWallDefs: [
         { x:380, y:280, w:180, h:14, axis:"x", min:300, max:560, speed:1.6 },
@@ -231,9 +231,9 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:130 },{ x:280,y:310 },{ x:680,y:240 },{ x:360,y:450 },{ x:540,y:80 }],
       exits: [{ side:"left", toRoom:6 },{ side:"right", toRoom:8 }],
       lasers: [
-        { x1:16, y1:185, x2:784, y2:185, phase:0.2, on:1.8, period:2.5 },
-        { x1:500, y1:16, x2:500, y2:484, phase:0.9, on:1.8, period:2.5 },
-        { x1:16, y1:380, x2:784, y2:380, phase:1.6, on:1.8, period:2.5 },
+        { x1:16, y1:185, x2:784, y2:185, phase:0.2, on:1.2, period:3.0 },
+        { x1:500, y1:16, x2:500, y2:484, phase:0.9, on:1.2, period:3.0 },
+        { x1:16, y1:380, x2:784, y2:380, phase:1.6, on:1.2, period:3.0 },
       ],
       movingWallDefs: [
         { x:300, y:160, w:160, h:14, axis:"x", min:200, max:420, speed:1.6 },
@@ -247,9 +247,9 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:140 },{ x:660,y:130 },{ x:310,y:310 },{ x:400,y:450 },{ x:560,y:420 }],
       exits: [{ side:"left", toRoom:6 },{ side:"right", toRoom:8 }],
       lasers: [
-        { x1:16, y1:210, x2:784, y2:210, phase:0.5, on:1.8, period:2.5 },
-        { x1:300, y1:16, x2:300, y2:484, phase:1.2, on:1.8, period:2.5 },
-        { x1:16, y1:360, x2:784, y2:360, phase:1.9, on:1.8, period:2.5 },
+        { x1:16, y1:210, x2:784, y2:210, phase:0.5, on:1.2, period:3.0 },
+        { x1:300, y1:16, x2:300, y2:484, phase:1.2, on:1.2, period:3.0 },
+        { x1:16, y1:360, x2:784, y2:360, phase:1.9, on:1.2, period:3.0 },
       ],
       movingWallDefs: [
         { x:420, y:200, w:160, h:14, axis:"x", min:350, max:600, speed:1.5 },
@@ -266,9 +266,9 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:200,y:80 },{ x:430,y:80 },{ x:700,y:430 },{ x:260,y:390 },{ x:560,y:460 },{ x:680,y:300 }],
       exits: [{ side:"left", toRoom:7 }],
       lasers: [
-        { x1:16, y1:150, x2:784, y2:150, phase:0,   on:1.8, period:2.5 },
-        { x1:450, y1:16, x2:450, y2:484, phase:0.8, on:1.8, period:2.5 },
-        { x1:16, y1:350, x2:784, y2:350, phase:1.4, on:1.8, period:2.5 },
+        { x1:16, y1:150, x2:784, y2:150, phase:0,   on:1.2, period:3.0 },
+        { x1:450, y1:16, x2:450, y2:484, phase:0.8, on:1.2, period:3.0 },
+        { x1:16, y1:350, x2:784, y2:350, phase:1.4, on:1.2, period:3.0 },
       ],
       movingWallDefs: [
         { x:300, y:240, w:180, h:14, axis:"x", min:200, max:480, speed:1.7 },
@@ -282,9 +282,9 @@ const ROOM_POOLS = [
       treasureDefs: [{ x:180,y:80 },{ x:400,y:80 },{ x:680,y:450 },{ x:260,y:390 },{ x:540,y:460 },{ x:700,y:290 }],
       exits: [{ side:"left", toRoom:7 }],
       lasers: [
-        { x1:16, y1:170, x2:784, y2:170, phase:0.2, on:1.8, period:2.5 },
-        { x1:330, y1:16, x2:330, y2:484, phase:0.9, on:1.8, period:2.5 },
-        { x1:16, y1:380, x2:784, y2:380, phase:1.5, on:1.8, period:2.5 },
+        { x1:16, y1:170, x2:784, y2:170, phase:0.2, on:1.2, period:3.0 },
+        { x1:330, y1:16, x2:330, y2:484, phase:0.9, on:1.2, period:3.0 },
+        { x1:16, y1:380, x2:784, y2:380, phase:1.5, on:1.2, period:3.0 },
       ],
       movingWallDefs: [
         { x:380, y:260, w:180, h:14, axis:"x", min:280, max:520, speed:1.8 },
@@ -652,7 +652,7 @@ export default function GamePage() {
       if (keys["ArrowUp"]    || keys["w"] || keys["W"]) my -= 1;
       if (keys["ArrowDown"]  || keys["s"] || keys["S"]) my += 1;
       if (mx !== 0 && my !== 0) { mx *= 0.7071; my *= 0.7071; }
-      const displayScale = Math.max(1, canvas.clientWidth / 400);
+      const displayScale = Math.max(1, canvas.clientWidth / 320);
       player.x += mx * P_SPEED / displayScale;
       player.y += my * P_SPEED / displayScale;
 
@@ -765,7 +765,7 @@ export default function GamePage() {
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const displayScale = Math.max(1, canvas.clientWidth / 400);
+        const displayScale = Math.max(1, canvas.clientWidth / 320);
         daemon.x += (dx / dist) * daemon.speed / displayScale;
         daemon.y += (dy / dist) * daemon.speed / displayScale;
         if (iframes <= 0 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
