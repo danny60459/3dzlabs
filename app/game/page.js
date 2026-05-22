@@ -36,6 +36,30 @@ const LASER_PERIOD = 2.3;   // total cycle (1.5 on + 0.8 off)
 const SECTOR_TIMERS = [30, 30, 30];
 const SECTOR_RANGES = [[0, 3], [3, 6], [6, 9]];
 
+// ─── Leaderboard ──────────────────────────────────────────────────────────────
+const LB_KEY      = "daemon_leaderboard";
+const CYBER_NAMES = [
+  "SYNX","VOID","ARCX","HEXX","BYTE","KORE","NEXX","ZER0","XENN","KRYP",
+  "VIP3","NULS","DRVN","GR1D","BL4Z","PRXM","SLNT","FLUX","VRTX","GL1T",
+  "PHNT","SHDW","QU4D","DR4X","NEON","THRX","WYRE","RNGE","KAIS","MNTR",
+];
+const CYBER_SFX   = ["7","99","0","X","EX","01","13","77","88","4","IX","00"];
+const BLOCKED_WORDS = new Set([
+  // English
+  "FUCK","FUK","FCK","SHIT","SHT","CUNT","CNT","BITCH","DICK","DIK","COCK",
+  "PUSS","TWAT","WANK","SLUT","RAPE","JIZZ","TITS","BOOB","PORN","KKK","NAZI",
+  "NIGR","NIGG","SPIC","KYKE","KIKE","FAGS","FAGG","FAG","COON","KOON","RETAR",
+  "ASS","CUM","SUK","TIT",
+  // Spanish
+  "PUTA","PUTO","MERD","CONN","SALP","POLLA","VERGA","JODE","CULO","PENE","CAGO",
+  // French
+  "FOTR","ENCU","BAIS","MERDE",
+  // Portuguese
+  "PORR","CARA","FODA","BUCH",
+  // German
+  "FICK","ARSC","HURE","FOTZE","WICHS",
+]);
+
 // ─── Room pools — 2 variants per slot, one randomly chosen each playthrough ───
 // Exits fixed by slot: S1[0]→right:1  S1[1]→left:0+right:2  S1[2]→left:1
 //                      S2[3]→right:4  S2[4]→left:3+right:5  S2[5]→left:4
@@ -305,7 +329,7 @@ export default function GamePage() {
     const ctx = canvas.getContext("2d");
 
     // ── Mutable game state ──────────────────────────────────────────────────
-    let phase     = "title";  // "title"|"playing"|"sectorComplete"|"gameover"|"win"
+    let phase     = "title";  // "title"|"playing"|"sectorComplete"|"gameover"|"nameEntry"|"leaderboard"
     let sectorIdx = 0;
     let roomIdx   = 0;
     let score     = 0;
@@ -315,10 +339,17 @@ export default function GamePage() {
     let iframes              = 0;
     let touchingLaserIndices = new Set();
     let shakeFrames          = 0;
+    let flashMsg             = "";
+    let flashFrames          = 0;
     let audioCtx             = null;
+    let gameStartTime        = 0;
+    let completionTime       = 0;
+    let lastSubmittedId      = "";
+    let lastSubmittedScore   = -1;
+    const nameEntry = { mode: "choose", selection: 0, input: "", error: "", errorTimer: 0 };
 
     const player = { x: WALL + 34, y: MY };
-    const daemon  = { x: 0, y: 0, active: false, speed: 0.7 * P_SPEED, spawnAge: 0 };
+    const daemon  = { x: 0, y: 0, active: false, speed: (canvas.clientWidth > 500 ? 0.6 : 0.7) * P_SPEED, spawnAge: 0 };
 
     let checkpoint        = null;  // { score, lives } saved on first S3 entry
     let continueCountdown = 10;
@@ -330,12 +361,84 @@ export default function GamePage() {
     function makeRooms() {
       return ROOM_POOLS.map(pool => pool[Math.floor(Math.random() * pool.length)]);
     }
+
+    function pickHeartPos(roomDef) {
+      const margin = WALL + 60;
+      for (let attempt = 0; attempt < 80; attempt++) {
+        const x = margin + Math.random() * (W - margin * 2);
+        const y = margin + Math.random() * (GH - margin * 2);
+        let ok = true;
+        for (const e of roomDef.enemyDefs) {
+          if ((x - e.x) ** 2 + (y - e.y) ** 2 < 70 * 70) { ok = false; break; }
+        }
+        if (ok) {
+          for (const [wx, wy, ww, wh] of roomDef.innerWalls) {
+            if (x > wx - 35 && x < wx + ww + 35 && y > wy - 35 && y < wy + wh + 35) { ok = false; break; }
+          }
+        }
+        if (ok) return { x, y, collected: false };
+      }
+      return { x: W / 2, y: GH / 2, collected: false };
+    }
+
     function makeRoomStates() {
-      return rooms.map(r => ({
+      const s2HeartRoom = SECTOR_RANGES[1][0] + Math.floor(Math.random() * 3);
+      const s3HeartRoom = SECTOR_RANGES[2][0] + Math.floor(Math.random() * 3);
+      return rooms.map((r, idx) => ({
         enemies:     r.enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0, lastX: e.x, lastY: e.y, stuckCount: 0 })),
         treasures:   r.treasureDefs.map(t => ({ ...t, collected: false })),
         movingWalls: (r.movingWallDefs ?? []).map(mw => ({ ...mw, dir: 1 })),
+        heart:       (idx === s2HeartRoom || idx === s3HeartRoom) ? pickHeartPos(r) : null,
       }));
+    }
+
+    // ── Mobile keyboard shim for name entry ───────────────────────────────
+    const hiddenInput = document.createElement("input");
+    hiddenInput.type  = "text";
+    hiddenInput.autocomplete = "off";
+    hiddenInput.style.cssText = "position:fixed;opacity:0;width:1px;height:1px;top:0;left:0;pointer-events:none;";
+    document.body.appendChild(hiddenInput);
+    hiddenInput.addEventListener("input", () => {
+      const v = hiddenInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+      hiddenInput.value = v;
+      nameEntry.input = v;
+    });
+
+    // ── Leaderboard helpers ────────────────────────────────────────────────
+    function generateCyberpunkId() {
+      const base = CYBER_NAMES[Math.floor(Math.random() * CYBER_NAMES.length)];
+      const sfx  = Math.random() > 0.45 ? CYBER_SFX[Math.floor(Math.random() * CYBER_SFX.length)] : "";
+      return (base + sfx).slice(0, 6);
+    }
+    function containsProfanity(s) {
+      const u = s.toUpperCase();
+      for (const w of BLOCKED_WORDS) { if (u.includes(w)) return true; }
+      return false;
+    }
+    function fmtTime(secs) {
+      return `${String(Math.floor(secs / 60)).padStart(2,"0")}:${String(secs % 60).padStart(2,"0")}`;
+    }
+    function loadLeaderboard() {
+      try { return JSON.parse(localStorage.getItem(LB_KEY) || "[]"); } catch { return []; }
+    }
+    function submitScore(id) {
+      lastSubmittedId    = id;
+      lastSubmittedScore = score;
+      const lb = loadLeaderboard();
+      lb.push({ id, score, time: completionTime, date: new Date().toISOString().slice(0, 10) });
+      lb.sort((a, b) => b.score !== a.score ? b.score - a.score : a.time - b.time);
+      try { localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, 10))); } catch {}
+    }
+    function submitManual() {
+      const id = nameEntry.input.trim();
+      if (id.length < 3) {
+        nameEntry.error = "MIN 3 CHARACTERS"; nameEntry.errorTimer = 130; return;
+      }
+      if (containsProfanity(id)) {
+        nameEntry.error = "ID REJECTED  —  TRY AGAIN"; nameEntry.errorTimer = 140;
+        nameEntry.input = ""; hiddenInput.value = ""; return;
+      }
+      submitScore(id); phase = "leaderboard";
     }
 
     function enterSector(idx) {
@@ -348,7 +451,7 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = 0.7 * P_SPEED;
+      daemon.speed  = (canvas.clientWidth > 500 ? 0.6 : 0.7) * P_SPEED;
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
@@ -376,6 +479,22 @@ export default function GamePage() {
           g.gain.setValueAtTime(0.12, t0);
           g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.1);
           osc.start(t0); osc.stop(t0 + 0.11);
+        });
+      } catch(e) {}
+    }
+
+    // Warm ascending chord on heart pickup
+    function sndHeart() {
+      try {
+        const c = ac(), now = c.currentTime;
+        [523, 659, 784, 1047].forEach((freq, i) => {
+          const osc = c.createOscillator(), g = c.createGain();
+          osc.type = "sine"; osc.frequency.value = freq;
+          osc.connect(g); g.connect(c.destination);
+          const t0 = now + i * 0.07;
+          g.gain.setValueAtTime(0.14, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.26);
+          osc.start(t0); osc.stop(t0 + 0.27);
         });
       } catch(e) {}
     }
@@ -495,7 +614,8 @@ export default function GamePage() {
     const onDown  = e => { keys[e.key] = true; };
     const onUp    = e => { keys[e.key] = false; };
     const onR     = e => {
-      if ((e.key === "r" || e.key === "R") && phase !== "playing" && phase !== "title") {
+      if ((e.key === "r" || e.key === "R") && phase !== "playing" && phase !== "title"
+          && !(phase === "nameEntry" && nameEntry.mode === "typing")) {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         restart();
       }
@@ -504,14 +624,38 @@ export default function GamePage() {
       if (e.key !== "Enter") return;
       if (phase === "title") {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        phase = "playing"; lastTick = performance.now();
+        phase = "playing"; lastTick = performance.now(); gameStartTime = performance.now();
       } else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
         else if (phase === "continue")       { useContinue(); }
+    };
+    const onNameKey = (e) => {
+      if (phase !== "nameEntry") return;
+      if (nameEntry.mode === "choose") {
+        if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") nameEntry.selection = 0;
+        if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") nameEntry.selection = 1;
+        if (e.key === "Tab") { e.preventDefault(); nameEntry.selection = 1 - nameEntry.selection; }
+        if (e.key === "Enter") {
+          if (nameEntry.selection === 0) {
+            submitScore(generateCyberpunkId()); phase = "leaderboard";
+          } else {
+            nameEntry.mode = "typing"; nameEntry.input = ""; hiddenInput.value = ""; hiddenInput.focus();
+          }
+        }
+      } else if (nameEntry.mode === "typing") {
+        if (e.key === "Backspace") {
+          nameEntry.input = nameEntry.input.slice(0, -1); hiddenInput.value = nameEntry.input;
+        } else if (e.key === "Enter") {
+          submitManual();
+        } else if (/^[A-Za-z0-9]$/.test(e.key) && nameEntry.input.length < 6) {
+          nameEntry.input += e.key.toUpperCase(); hiddenInput.value = nameEntry.input;
+        }
+      }
     };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup",   onUp);
     window.addEventListener("keydown", onR);
     window.addEventListener("keydown", onEnter);
+    window.addEventListener("keydown", onNameKey);
 
     // ── Geometry helpers ───────────────────────────────────────────────────
     function overlap(a, b) {
@@ -610,11 +754,13 @@ export default function GamePage() {
       checkpoint.used = true;
       lives = 3;
       const [s3Start, s3End] = SECTOR_RANGES[2];
+      const s3HeartRoom = s3Start + Math.floor(Math.random() * 3);
       for (let i = s3Start; i < s3End; i++) {
         roomStates[i] = {
           enemies:     rooms[i].enemyDefs.map(e => ({ x: e.x, y: e.y, speed: e.speed, vx: 0, vy: 0, wanderTimer: 0, lastX: e.x, lastY: e.y, stuckCount: 0 })),
           treasures:   rooms[i].treasureDefs.map(t => ({ ...t, collected: false })),
           movingWalls: (rooms[i].movingWallDefs ?? []).map(mw => ({ ...mw, dir: 1 })),
+          heart:       (i === s3HeartRoom) ? pickHeartPos(rooms[i]) : null,
         };
       }
       enterSector(2);
@@ -628,6 +774,10 @@ export default function GamePage() {
           continueLastTick = now;
           if (--continueCountdown <= 0) phase = "gameover";
         }
+        return;
+      }
+      if (phase === "nameEntry") {
+        if (nameEntry.errorTimer > 0) nameEntry.errorTimer--;
         return;
       }
       if (phase !== "playing") return;
@@ -753,12 +903,35 @@ export default function GamePage() {
         const [sStart, sEnd] = SECTOR_RANGES[sectorIdx];
         if (roomStates.slice(sStart, sEnd).every(s => s.treasures.every(t => t.collected))) {
           score += 100;
-          if (sectorIdx === 2) { score += 500; phase = "win"; sndWinFanfare(); }
+          if (sectorIdx === 2) {
+            score += 500;
+            completionTime = Math.round((performance.now() - gameStartTime) / 1000);
+            nameEntry.mode = "choose"; nameEntry.selection = 0;
+            nameEntry.input = ""; nameEntry.error = ""; nameEntry.errorTimer = 0;
+            phase = "nameEntry"; sndWinFanfare();
+          }
           else                 { phase = "sectorComplete"; sndSectorFanfare(); }
           return;
         }
         if (rs.treasures.every(t => t.collected)) sndRoomClear();
       }
+
+      // Heart pickup
+      if (rs.heart && !rs.heart.collected) {
+        if (overlap(pr, { x: rs.heart.x - 14, y: rs.heart.y - 14, w: 28, h: 28 })) {
+          rs.heart.collected = true;
+          sndHeart();
+          if (lives < 3) {
+            lives++;
+            flashMsg = "LIFE  RESTORED";
+          } else {
+            score += 100;
+            flashMsg = "BONUS  +100";
+          }
+          flashFrames = 150;
+        }
+      }
+      if (flashFrames > 0) flashFrames--;
 
       if (daemon.active) {
         if (daemon.spawnAge < 240) daemon.spawnAge++;
@@ -860,6 +1033,8 @@ export default function GamePage() {
       if (phase === "title")           { drawTitle(t); return; }
       if (phase === "sectorComplete")  { drawSectorComplete(t); return; }
       if (phase === "continue")        { drawContinue(t); return; }
+      if (phase === "nameEntry")       { drawNameEntry(t); return; }
+      if (phase === "leaderboard")     { drawLeaderboard(t); return; }
 
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, W, H);
@@ -887,16 +1062,17 @@ export default function GamePage() {
       drawRoom(t);
       drawLasers(t);
       drawTreasures(t);
+      drawHearts(t);
       drawEnemies(t);
       if (daemon.active) drawDaemon(t);
       drawPlayer(t);
+      if (flashFrames > 0) drawFlashMsg();
 
       ctx.restore();
 
       const warnAt = Math.ceil(SECTOR_TIMERS[sectorIdx] * 0.4);
       if (timer > 0 && timer <= warnAt && !daemon.active) drawWarning(t);
-      if (phase === "gameover") drawOverlay("GAME OVER", RED,   `SCORE  ${String(score).padStart(6,"0")}`, "TAP  ·  [R]  TO RESTART");
-      if (phase === "win")      drawOverlay("ESCAPED!",  GREEN, `SCORE  ${String(score).padStart(6,"0")}  +500 BONUS`, "TAP  ·  [R]  TO PLAY AGAIN");
+      if (phase === "gameover") drawOverlay("GAME OVER", RED, `SCORE  ${String(score).padStart(6,"0")}`, "TAP  ·  [R]  TO RESTART");
     }
 
     // ── HUD ─────────────────────────────────────────────────────────────────
@@ -1250,6 +1426,219 @@ export default function GamePage() {
       ctx.shadowColor = "transparent";
     }
 
+    // ── Name entry screen ───────────────────────────────────────────────────
+    function drawNameEntry(t) {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+      for (let y = 0; y < H; y += 3) {
+        ctx.fillStyle = "rgba(0,255,160,0.012)"; ctx.fillRect(0, y, W, 1);
+      }
+      ctx.textAlign = "center";
+
+      ctx.font = "bold 36px monospace"; ctx.fillStyle = GREEN;
+      ctx.shadowColor = GREEN; ctx.shadowBlur = 20;
+      ctx.fillText("YOU  ESCAPED!", W / 2, 88);
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = DIM; ctx.font = "13px monospace";
+      ctx.letterSpacing = "4px";
+      ctx.fillText("ENTER OPERATOR ID", W / 2, 122);
+      ctx.letterSpacing = "0px";
+
+      ctx.fillStyle = "rgba(0,255,160,0.5)"; ctx.font = "12px monospace";
+      ctx.fillText(
+        `SCORE  ${String(score).padStart(6,"0")}   ·   TIME  ${fmtTime(completionTime)}`,
+        W / 2, 148
+      );
+
+      ctx.strokeStyle = "rgba(0,255,160,0.18)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(80, 164); ctx.lineTo(W - 80, 164); ctx.stroke();
+
+      if (nameEntry.mode === "choose") {
+        const btnW = 190, btnH = 78, btnY = H / 2 - 52;
+        const autoX = W / 2 - 208, manX = W / 2 + 18;
+
+        [[autoX, "AUTO", "RANDOM CALLSIGN", 0], [manX, "MANUAL", "TYPE YOUR ID", 1]].forEach(([bx, lbl, sub, idx]) => {
+          const sel = nameEntry.selection === idx;
+          ctx.fillStyle   = sel ? "rgba(0,255,160,0.13)" : "rgba(0,255,160,0.03)";
+          ctx.fillRect(bx, btnY, btnW, btnH);
+          ctx.strokeStyle = sel ? GREEN : "rgba(0,204,122,0.32)";
+          ctx.lineWidth   = sel ? 2 : 1;
+          if (sel) { ctx.shadowColor = GREEN; ctx.shadowBlur = 14; }
+          ctx.strokeRect(bx, btnY, btnW, btnH);
+          ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+
+          ctx.fillStyle = sel ? GREEN : DIM;
+          ctx.font      = "bold 19px monospace";
+          ctx.fillText(lbl, bx + btnW / 2, btnY + 31);
+          ctx.fillStyle = sel ? "rgba(0,255,160,0.55)" : "rgba(0,204,122,0.32)";
+          ctx.font      = "10px monospace";
+          ctx.fillText(sub, bx + btnW / 2, btnY + 55);
+        });
+
+        ctx.fillStyle = "rgba(0,204,122,0.42)"; ctx.font = "11px monospace";
+        ctx.fillText("◄ ►  CHOOSE  ·  ENTER  TO CONFIRM", W / 2, H / 2 + 66);
+      }
+
+      if (nameEntry.mode === "typing") {
+        const boxW = 300, boxH = 56, bx = W / 2 - 150, by = H / 2 - 48;
+
+        ctx.fillStyle = "rgba(0,255,160,0.06)";
+        ctx.fillRect(bx, by, boxW, boxH);
+        ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
+        ctx.shadowColor = GREEN; ctx.shadowBlur = 12;
+        ctx.strokeRect(bx, by, boxW, boxH);
+        ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+
+        const cur = Math.floor(t / 480) % 2 ? "█" : " ";
+        ctx.fillStyle = GREEN; ctx.font = "bold 28px monospace";
+        ctx.shadowColor = GREEN; ctx.shadowBlur = 8;
+        ctx.fillText(nameEntry.input + cur, W / 2, by + 37);
+        ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+
+        ctx.fillStyle = "rgba(0,204,122,0.48)"; ctx.font = "10px monospace";
+        ctx.fillText("A – Z  ·  0 – 9  ·  3 – 6 CHARACTERS", W / 2, by + 72);
+
+        // CONFIRM button
+        const cbW = 200, cbH = 36, cbX = W / 2 - 100, cbY = H / 2 + 22;
+        ctx.fillStyle   = "rgba(0,255,160,0.09)";
+        ctx.strokeStyle = "rgba(0,255,160,0.5)"; ctx.lineWidth = 1.5;
+        ctx.fillRect(cbX, cbY, cbW, cbH);
+        ctx.strokeRect(cbX, cbY, cbW, cbH);
+        ctx.fillStyle = DIM; ctx.font = "12px monospace";
+        ctx.fillText("CONFIRM  [ENTER]", W / 2, cbY + 24);
+
+        if (nameEntry.errorTimer > 0) {
+          const ea = Math.min(1, nameEntry.errorTimer / 40);
+          ctx.fillStyle   = `rgba(255,48,96,${ea})`;
+          ctx.font        = "bold 12px monospace";
+          ctx.shadowColor = RED; ctx.shadowBlur = 10;
+          ctx.fillText(nameEntry.error, W / 2, cbY + 62);
+          ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+        }
+      }
+
+      ctx.textAlign = "left"; ctx.shadowColor = "transparent";
+    }
+
+    // ── Leaderboard screen ──────────────────────────────────────────────────
+    function drawLeaderboard(t) {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+      for (let y = 0; y < H; y += 3) {
+        ctx.fillStyle = "rgba(0,255,160,0.012)"; ctx.fillRect(0, y, W, 1);
+      }
+      ctx.textAlign = "center";
+
+      ctx.font = "bold 28px monospace"; ctx.fillStyle = GREEN;
+      ctx.shadowColor = GREEN; ctx.shadowBlur = 18;
+      ctx.fillText("HALL  OF  OPERATORS", W / 2, 50);
+      ctx.shadowBlur = 0;
+
+      ctx.strokeStyle = "rgba(0,255,160,0.28)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(60, 62); ctx.lineTo(W - 60, 62); ctx.stroke();
+
+      const lb = loadLeaderboard();
+
+      if (lb.length === 0) {
+        ctx.fillStyle = DIM; ctx.font = "14px monospace";
+        ctx.fillText("— NO RECORDS —", W / 2, H / 2);
+      } else {
+        const cols = { rnk: 62, id: 120, score: 352, time: 480, date: 578 };
+        ctx.textAlign = "left";
+        ctx.fillStyle = "rgba(0,204,122,0.42)"; ctx.font = "10px monospace";
+        ctx.fillText("RNK",      cols.rnk,   86);
+        ctx.fillText("OPERATOR", cols.id,    86);
+        ctx.fillText("SCORE",    cols.score, 86);
+        ctx.fillText("TIME",     cols.time,  86);
+        ctx.fillText("DATE",     cols.date,  86);
+        ctx.strokeStyle = "rgba(0,255,160,0.12)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(60, 93); ctx.lineTo(W - 60, 93); ctx.stroke();
+
+        let highlighted = false;
+        for (let i = 0; i < Math.min(lb.length, 10); i++) {
+          const e   = lb[i];
+          const ry  = 114 + i * 38;
+          const isNew = !highlighted && e.id === lastSubmittedId && e.score === lastSubmittedScore;
+          if (isNew) highlighted = true;
+
+          if (isNew) {
+            ctx.fillStyle = "rgba(255,220,80,0.08)";
+            ctx.fillRect(58, ry - 14, W - 116, 22);
+          }
+
+          ctx.fillStyle = isNew
+            ? "rgba(255,220,80,0.95)"
+            : i === 0 ? GREEN : `rgba(0,204,122,${0.9 - i * 0.05})`;
+          if (isNew || i === 0) { ctx.shadowColor = isNew ? "#ffdc50" : GREEN; ctx.shadowBlur = 8; }
+          ctx.font = i < 3 ? "bold 14px monospace" : "13px monospace";
+
+          ctx.fillText(`${String(i + 1).padStart(2,"0")}`,     cols.rnk,   ry);
+          ctx.fillText(e.id.slice(0,8).padEnd(8),              cols.id,    ry);
+          ctx.fillText(String(e.score).padStart(6,"0"),        cols.score, ry);
+          ctx.fillText(fmtTime(e.time ?? 0),                   cols.time,  ry);
+          ctx.fillText(e.date ?? "",                           cols.date,  ry);
+          ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+        }
+      }
+
+      ctx.textAlign = "center";
+      if (Math.floor(t / 520) % 2) {
+        ctx.fillStyle = DIM; ctx.font = "12px monospace";
+        ctx.shadowColor = GREEN; ctx.shadowBlur = 5;
+        ctx.fillText("TAP  ·  [R]  TO PLAY AGAIN", W / 2, H - 34);
+        ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+      }
+      ctx.textAlign = "left"; ctx.shadowColor = "transparent";
+    }
+
+    // ── Heart pickups ───────────────────────────────────────────────────────
+    function drawHearts(t) {
+      const rs = roomStates[roomIdx];
+      if (!rs.heart || rs.heart.collected) return;
+      const pulse = Math.sin(t / 400) * 0.4 + 0.6;
+      const s = 11;
+      const { x, y } = rs.heart;
+      const oy = y - s * 0.25;
+
+      function heartPath() {
+        ctx.beginPath();
+        ctx.moveTo(x, oy + s);
+        ctx.bezierCurveTo(x - s * 2, oy + s * 0.5, x - s, oy - s * 0.8, x, oy - s * 0.4);
+        ctx.bezierCurveTo(x + s, oy - s * 0.8, x + s * 2, oy + s * 0.5, x, oy + s);
+        ctx.closePath();
+      }
+
+      ctx.save();
+      ctx.shadowColor = "#ff4080";
+      ctx.shadowBlur  = 18 + pulse * 12;
+      ctx.fillStyle   = `rgba(255,60,110,${0.65 + pulse * 0.35})`;
+      heartPath(); ctx.fill();
+      ctx.shadowBlur  = 4;
+      ctx.strokeStyle = `rgba(255,185,215,${0.7 + pulse * 0.3})`;
+      ctx.lineWidth   = 1.5;
+      heartPath(); ctx.stroke();
+      ctx.shadowBlur  = 0;
+      ctx.shadowColor = "transparent";
+      ctx.restore();
+    }
+
+    // ── Flash message (LIFE RESTORED / BONUS +100) ──────────────────────────
+    function drawFlashMsg() {
+      const a = flashFrames <= 40 ? flashFrames / 40 : 1;
+      ctx.save();
+      ctx.textAlign   = "center";
+      ctx.font        = "bold 22px monospace";
+      ctx.shadowColor = "#ff69b4";
+      ctx.shadowBlur  = 22;
+      ctx.fillStyle   = `rgba(255,140,200,${a})`;
+      ctx.fillText(flashMsg, W / 2, GH / 2 - 60);
+      ctx.shadowBlur  = 0;
+      ctx.shadowColor = "transparent";
+      ctx.textAlign   = "left";
+      ctx.restore();
+    }
+
     // ── Warning flash ───────────────────────────────────────────────────────
     function drawWarning(t) {
       if (Math.floor(t / 420) % 2) return;
@@ -1328,12 +1717,17 @@ export default function GamePage() {
 
     // ── Restart ─────────────────────────────────────────────────────────────
     function restart() {
-      rooms      = makeRooms();
-      phase      = "playing";
-      sectorIdx  = 0;
-      score      = 0;
-      lives      = 3;
-      checkpoint = null;
+      rooms              = makeRooms();
+      phase              = "playing";
+      sectorIdx          = 0;
+      score              = 0;
+      lives              = 3;
+      checkpoint         = null;
+      gameStartTime      = performance.now();
+      lastSubmittedId    = "";
+      lastSubmittedScore = -1;
+      nameEntry.mode = "choose"; nameEntry.selection = 0;
+      nameEntry.input = ""; nameEntry.error = ""; nameEntry.errorTimer = 0;
       roomStates = makeRoomStates();
       enterSector(0);
     }
@@ -1343,14 +1737,39 @@ export default function GamePage() {
       e.preventDefault();
       if (phase === "title") {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        phase = "playing"; lastTick = performance.now();
+        phase = "playing"; lastTick = performance.now(); gameStartTime = performance.now();
       } else if (phase === "sectorComplete") {
         enterSector(sectorIdx + 1); phase = "playing";
       } else if (phase === "continue") {
         useContinue();
-      } else if (phase === "gameover" || phase === "win") {
+      } else if (phase === "gameover") {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         restart();
+      } else if (phase === "leaderboard") {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        restart();
+      } else if (phase === "nameEntry") {
+        const rect  = canvas.getBoundingClientRect();
+        const touch = e.touches[0] || e.changedTouches[0];
+        const cx    = (touch.clientX - rect.left) * (W / rect.width);
+        const cy    = (touch.clientY - rect.top)  * (H / rect.height);
+        if (nameEntry.mode === "choose") {
+          const btnW = 190, btnH = 78, btnY = H / 2 - 52;
+          if (cy >= btnY && cy <= btnY + btnH) {
+            if (cx >= W / 2 - 208 && cx <= W / 2 - 18) {
+              submitScore(generateCyberpunkId()); phase = "leaderboard";
+            } else if (cx >= W / 2 + 18 && cx <= W / 2 + 208) {
+              nameEntry.mode = "typing"; nameEntry.input = ""; hiddenInput.value = ""; hiddenInput.focus();
+            }
+          }
+        } else if (nameEntry.mode === "typing") {
+          const cbY = H / 2 + 22;
+          if (cy >= cbY && cy <= cbY + 36) {
+            submitManual();
+          } else {
+            hiddenInput.focus();
+          }
+        }
       }
     };
     canvas.addEventListener("touchstart", onCanvasTouch, { passive: false });
@@ -1367,6 +1786,9 @@ export default function GamePage() {
       window.removeEventListener("keyup",   onUp);
       window.removeEventListener("keydown", onR);
       window.removeEventListener("keydown", onEnter);
+      window.removeEventListener("keydown", onNameKey);
+      hiddenInput.blur();
+      document.body.removeChild(hiddenInput);
       if (audioCtx) { audioCtx.close(); audioCtx = null; }
     };
   }, []);
