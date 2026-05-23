@@ -349,6 +349,7 @@ export default function GamePage() {
     let bgAudio              = null;
     let sectorCompleteAudio  = null;
     let bgMusicVolume        = 0.3;
+    let audioUnlocked        = false;
     let gameStartTime        = 0;
     let completionTime       = 0;
     let lastSubmittedId      = "";
@@ -634,7 +635,17 @@ export default function GamePage() {
       bgAudio.loop   = true;
       bgAudio.volume = bgMusicVolume;
       bgAudio.muted  = !soundEnabled;
-      bgAudio.play().catch(() => {});
+      bgAudio.play().then(() => {
+        console.log("[audio] bgAudio started playing");
+      }).catch(() => {});
+    }
+
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      if (soundEnabled) startBgMusic();
     }
 
     function playSectorCompleteVoice() {
@@ -656,7 +667,12 @@ export default function GamePage() {
 
     function toggleSound() {
       soundEnabled = !soundEnabled;
-      if (bgAudio) bgAudio.muted = !soundEnabled;
+      if (bgAudio) {
+        bgAudio.muted = !soundEnabled;
+        if (soundEnabled && bgAudio.paused) bgAudio.play().catch(() => {});
+      } else if (soundEnabled) {
+        startBgMusic();
+      }
     }
 
     function drawSoundBtn(x, y, w, h) {
@@ -681,15 +697,14 @@ export default function GamePage() {
     const onR     = e => {
       if ((e.key === "r" || e.key === "R") && phase !== "playing" && phase !== "title"
           && !(phase === "nameEntry" && nameEntry.mode === "typing")) {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        unlockAudio();
         restart();
       }
     };
     const onEnter = e => {
       if (e.key !== "Enter") return;
       if (phase === "title") {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        startBgMusic();
+        unlockAudio();
         phase = "playing"; lastTick = performance.now(); gameStartTime = performance.now();
       } else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
         else if (phase === "continue")       { useContinue(); }
@@ -719,6 +734,9 @@ export default function GamePage() {
         }
       }
     };
+    window.addEventListener("keydown",    unlockAudio, { once: true });
+    window.addEventListener("click",      unlockAudio, { once: true });
+    window.addEventListener("touchstart", unlockAudio, { once: true });
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup",   onUp);
     window.addEventListener("keydown", onR);
@@ -1850,18 +1868,17 @@ export default function GamePage() {
         toggleSound(); return;
       }
       if (phase === "title") {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        startBgMusic();
+        unlockAudio();
         phase = "playing"; lastTick = performance.now(); gameStartTime = performance.now();
       } else if (phase === "sectorComplete") {
         enterSector(sectorIdx + 1); phase = "playing";
       } else if (phase === "continue") {
         useContinue();
       } else if (phase === "gameover") {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        unlockAudio();
         restart();
       } else if (phase === "leaderboard") {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        unlockAudio();
         restart();
       } else if (phase === "nameEntry") {
         if (nameEntry.mode === "choose") {
@@ -1906,6 +1923,9 @@ export default function GamePage() {
       cancelAnimationFrame(raf);
       canvas.removeEventListener("click",      onCanvasClick);
       canvas.removeEventListener("touchstart", onCanvasTouch);
+      window.removeEventListener("keydown",    unlockAudio);
+      window.removeEventListener("click",      unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup",   onUp);
       window.removeEventListener("keydown", onR);
