@@ -347,7 +347,7 @@ export default function GamePage() {
     let audioCtx             = null;
     let soundEnabled         = true;
     let bgAudio              = null;
-    let sectorCompleteAudio  = null;
+    let sectorCompleteBuffer = null;
     let bgMusicVolume        = 0.3;
     let audioUnlocked        = false;
     let gameStartTime        = 0;
@@ -474,7 +474,6 @@ export default function GamePage() {
     function ac() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === "suspended") audioCtx.resume();
-      startBgMusic();
       return audioCtx;
     }
 
@@ -643,16 +642,31 @@ export default function GamePage() {
     function unlockAudio() {
       if (audioUnlocked) return;
       audioUnlocked = true;
+      // Synchronously create and resume the AudioContext within the user gesture
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === "suspended") audioCtx.resume();
       if (soundEnabled) startBgMusic();
+      // Pre-load sector-complete voice as an AudioBuffer so it can be played on mobile
+      // (HTML Audio.play() is blocked on mobile outside a direct user gesture; AudioBuffer is not)
+      const ctx = audioCtx;
+      fetch("/sounds/sector-complete.mp3")
+        .then(r => r.arrayBuffer())
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { sectorCompleteBuffer = buf; })
+        .catch(() => {});
     }
 
     function playSectorCompleteVoice() {
-      if (!soundEnabled) return;
-      if (!sectorCompleteAudio) sectorCompleteAudio = new Audio("/sounds/sector-complete.mp3");
-      sectorCompleteAudio.currentTime = 0;
-      sectorCompleteAudio.play().catch(() => {});
+      if (!soundEnabled || !audioCtx || !sectorCompleteBuffer) return;
+      try {
+        const src = audioCtx.createBufferSource();
+        src.buffer = sectorCompleteBuffer;
+        const g = audioCtx.createGain();
+        g.gain.value = 0.85;
+        src.connect(g);
+        g.connect(audioCtx.destination);
+        src.start();
+      } catch(e) {}
     }
 
     function duckMusic() {
@@ -1857,6 +1871,10 @@ export default function GamePage() {
     // ── Touch-to-action (title tap, sector-complete tap, restart tap) ──────
     const onCanvasTouch = (e) => {
       e.preventDefault();
+      // Unlock AudioContext synchronously inside the direct touch event handler —
+      // this fires before the window-level bubbling listener, guaranteeing unlock
+      // happens before any game logic on the very first tap.
+      unlockAudio();
       const rect  = canvas.getBoundingClientRect();
       const touch = e.touches[0] || e.changedTouches[0];
       const cx    = (touch.clientX - rect.left) * (W / rect.width);
