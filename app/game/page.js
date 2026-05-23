@@ -37,7 +37,8 @@ const SECTOR_TIMERS = [30, 30, 30];
 const SECTOR_RANGES = [[0, 3], [3, 6], [6, 9]];
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────────
-const LB_KEY      = "daemon_leaderboard";
+const LB_KEY_DESKTOP = "daemon_leaderboard_desktop";
+const LB_KEY_MOBILE  = "daemon_leaderboard_mobile";
 const CYBER_NAMES = [
   "SYNX","VOID","ARCX","HEXX","BYTE","KORE","NEXX","ZER0","XENN","KRYP",
   "VIP3","NULS","DRVN","GR1D","BL4Z","PRXM","SLNT","FLUX","VRTX","GL1T",
@@ -337,8 +338,9 @@ export default function GamePage() {
     let lives     = 3;
     let timer     = SECTOR_TIMERS[0];
     let lastTick  = performance.now();
-    let iframes              = 0;
+    let lastHitTime          = -Infinity;
     let touchingLaserIndices = new Set();
+    let platformKey          = LB_KEY_DESKTOP;
     let shakeFrames          = 0;
     let flashMsg             = "";
     let flashFrames          = 0;
@@ -419,16 +421,17 @@ export default function GamePage() {
     function fmtTime(secs) {
       return `${String(Math.floor(secs / 60)).padStart(2,"0")}:${String(secs % 60).padStart(2,"0")}`;
     }
-    function loadLeaderboard() {
-      try { return JSON.parse(localStorage.getItem(LB_KEY) || "[]"); } catch { return []; }
+    function loadLeaderboard(key) {
+      const k = key || platformKey;
+      try { return JSON.parse(localStorage.getItem(k) || "[]"); } catch { return []; }
     }
     function submitScore(id) {
       lastSubmittedId    = id;
       lastSubmittedScore = score;
-      const lb = loadLeaderboard();
+      const lb = loadLeaderboard(platformKey);
       lb.push({ id, score, time: completionTime, date: new Date().toISOString().slice(0, 10) });
       lb.sort((a, b) => b.score !== a.score ? b.score - a.score : a.time - b.time);
-      try { localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, 10))); } catch {}
+      try { localStorage.setItem(platformKey, JSON.stringify(lb.slice(0, 10))); } catch {}
     }
     function submitManual() {
       const id = nameEntry.input.trim();
@@ -447,7 +450,7 @@ export default function GamePage() {
       roomIdx       = SECTOR_RANGES[idx][0];
       timer         = SECTOR_TIMERS[idx];
       lastTick      = performance.now();
-      iframes              = 120;
+      lastHitTime          = performance.now();
       touchingLaserIndices = new Set();
       player.x      = WALL + 34;
       player.y      = MY;
@@ -733,7 +736,7 @@ export default function GamePage() {
       if (fromSide === "right") { player.x = W - WALL - P_SZ;  player.y = MY; }
       if (fromSide === "up")    { player.x = MX; player.y = WALL + P_SZ; }
       if (fromSide === "down")  { player.x = MX; player.y = GH - WALL - P_SZ; }
-      iframes              = 120;
+      lastHitTime          = performance.now();
       touchingLaserIndices = new Set();
       if (daemon.active) {
         daemon.x = WALL + 8;
@@ -856,17 +859,21 @@ export default function GamePage() {
         }
       }
 
-      if (iframes > 0) {
-        iframes--;
-      } else {
+      {
+        const nowMs = performance.now();
+        const isInvincible = nowMs - lastHitTime < 2000;
         const pr = pRect();
         let hit = false;
-        for (const e of rs.enemies) {
-          if (overlap(pr, { x: e.x - E_SZ/2, y: e.y - E_SZ/2, w: E_SZ, h: E_SZ })) {
-            hit = true; break;
+
+        if (!isInvincible) {
+          for (const e of rs.enemies) {
+            if (overlap(pr, { x: e.x - E_SZ/2, y: e.y - E_SZ/2, w: E_SZ, h: E_SZ })) {
+              hit = true; break;
+            }
           }
         }
-        const tSec = performance.now() / 1000;
+
+        const tSec = nowMs / 1000;
         const lasers = rooms[roomIdx].lasers ?? [];
         for (let li = 0; li < lasers.length; li++) {
           const L = lasers[li];
@@ -877,14 +884,18 @@ export default function GamePage() {
             ? { x: L.x1, y: L.y1 - 3, w: L.x2 - L.x1, h: 6 }
             : { x: L.x1 - 3, y: L.y1, w: 6, h: L.y2 - L.y1 };
           if (on && overlap(pr, lr)) {
-            if (!touchingLaserIndices.has(li)) { touchingLaserIndices.add(li); hit = true; }
+            if (!touchingLaserIndices.has(li)) {
+              touchingLaserIndices.add(li);
+              if (!isInvincible) hit = true;
+            }
           } else {
             touchingLaserIndices.delete(li);
           }
         }
+
         if (hit) {
           lives--;
-          iframes = 120;
+          lastHitTime = nowMs;
           shakeFrames = 14;
           sndDeath();
           if (lives <= 0) { triggerGameOver(); return; }
@@ -914,6 +925,7 @@ export default function GamePage() {
             score += 500;
             score += lives * 100;
             completionTime = Math.round((performance.now() - gameStartTime) / 1000);
+            platformKey    = canvas.clientWidth <= 500 ? LB_KEY_MOBILE : LB_KEY_DESKTOP;
             nameEntry.mode = "choose"; nameEntry.selection = 0;
             nameEntry.input = ""; nameEntry.error = ""; nameEntry.errorTimer = 0;
             phase = "nameEntry"; sndWinFanfare();
@@ -948,7 +960,7 @@ export default function GamePage() {
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         daemon.x += (dx / dist) * daemon.speed * playerSpeedMult / desktopScale;
         daemon.y += (dy / dist) * daemon.speed * playerSpeedMult / desktopScale;
-        if (iframes <= 0 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
+        if (performance.now() - lastHitTime >= 2000 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
           sndDeath(); shakeFrames = 22;
           triggerGameOver();
         }
@@ -1416,7 +1428,8 @@ export default function GamePage() {
 
     // ── Player ──────────────────────────────────────────────────────────────
     function drawPlayer(t) {
-      if (iframes > 0 && Math.floor(iframes / 5) % 2 === 0) return;
+      const timeSinceHit = performance.now() - lastHitTime;
+      if (timeSinceHit < 2000 && Math.floor(timeSinceHit / 83) % 2 === 0) return;
       const s = P_SZ / 2;
       ctx.shadowColor = GREEN;
       ctx.shadowBlur  = 12;
@@ -1540,13 +1553,17 @@ export default function GamePage() {
 
       ctx.font = "bold 28px monospace"; ctx.fillStyle = GREEN;
       ctx.shadowColor = GREEN; ctx.shadowBlur = 18;
-      ctx.fillText("HALL  OF  OPERATORS", W / 2, 50);
+      ctx.fillText("HALL  OF  OPERATORS", W / 2, 44);
       ctx.shadowBlur = 0;
 
-      ctx.strokeStyle = "rgba(0,255,160,0.28)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(60, 62); ctx.lineTo(W - 60, 62); ctx.stroke();
+      ctx.font = "11px monospace";
+      ctx.fillStyle = platformKey === LB_KEY_DESKTOP ? "#60c0ff" : "#ff80c0";
+      ctx.fillText(platformKey === LB_KEY_DESKTOP ? "— DESKTOP RANKINGS —" : "— MOBILE RANKINGS —", W / 2, 62);
 
-      const lb = loadLeaderboard();
+      ctx.strokeStyle = "rgba(0,255,160,0.28)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(60, 74); ctx.lineTo(W - 60, 74); ctx.stroke();
+
+      const lb = loadLeaderboard(platformKey);
 
       if (lb.length === 0) {
         ctx.fillStyle = DIM; ctx.font = "14px monospace";
@@ -1555,18 +1572,18 @@ export default function GamePage() {
         const cols = { rnk: 62, id: 120, score: 352, time: 480, date: 578 };
         ctx.textAlign = "left";
         ctx.fillStyle = "rgba(0,204,122,0.42)"; ctx.font = "10px monospace";
-        ctx.fillText("RNK",      cols.rnk,   86);
-        ctx.fillText("OPERATOR", cols.id,    86);
-        ctx.fillText("SCORE",    cols.score, 86);
-        ctx.fillText("TIME",     cols.time,  86);
-        ctx.fillText("DATE",     cols.date,  86);
+        ctx.fillText("RNK",      cols.rnk,   98);
+        ctx.fillText("OPERATOR", cols.id,    98);
+        ctx.fillText("SCORE",    cols.score, 98);
+        ctx.fillText("TIME",     cols.time,  98);
+        ctx.fillText("DATE",     cols.date,  98);
         ctx.strokeStyle = "rgba(0,255,160,0.12)"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(60, 93); ctx.lineTo(W - 60, 93); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(60, 105); ctx.lineTo(W - 60, 105); ctx.stroke();
 
         let highlighted = false;
         for (let i = 0; i < Math.min(lb.length, 10); i++) {
           const e   = lb[i];
-          const ry  = 114 + i * 38;
+          const ry  = 126 + i * 36;
           const isNew = !highlighted && e.id === lastSubmittedId && e.score === lastSubmittedScore;
           if (isNew) highlighted = true;
 
