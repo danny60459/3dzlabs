@@ -327,6 +327,7 @@ export default function GamePage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    const isMobile = navigator.maxTouchPoints > 0;
 
     // ── Mutable game state ──────────────────────────────────────────────────
     let phase     = "title";  // "title"|"playing"|"sectorComplete"|"gameover"|"nameEntry"|"leaderboard"
@@ -349,7 +350,7 @@ export default function GamePage() {
     const nameEntry = { mode: "choose", selection: 0, input: "", error: "", errorTimer: 0 };
 
     const player = { x: WALL + 34, y: MY };
-    const daemon  = { x: 0, y: 0, active: false, speed: (canvas.clientWidth > 500 ? 0.6 : 0.7) * P_SPEED, spawnAge: 0 };
+    const daemon  = { x: 0, y: 0, active: false, speed: (isMobile ? 0.7 : 0.6) * P_SPEED, spawnAge: 0 };
 
     let checkpoint        = null;  // { score, lives } saved on first S3 entry
     let continueCountdown = 10;
@@ -451,7 +452,7 @@ export default function GamePage() {
       player.x      = WALL + 34;
       player.y      = MY;
       daemon.active = false;
-      daemon.speed  = (canvas.clientWidth > 500 ? 0.6 : 0.7) * P_SPEED;
+      daemon.speed  = (isMobile ? 0.7 : 0.6) * P_SPEED;
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
@@ -643,10 +644,12 @@ export default function GamePage() {
         }
       } else if (nameEntry.mode === "typing") {
         if (e.key === "Backspace") {
+          e.preventDefault();
           nameEntry.input = nameEntry.input.slice(0, -1); hiddenInput.value = nameEntry.input;
         } else if (e.key === "Enter") {
           submitManual();
         } else if (/^[A-Za-z0-9]$/.test(e.key) && nameEntry.input.length < 6) {
+          e.preventDefault();
           nameEntry.input += e.key.toUpperCase(); hiddenInput.value = nameEntry.input;
         }
       }
@@ -802,9 +805,11 @@ export default function GamePage() {
       if (keys["ArrowUp"]    || keys["w"] || keys["W"]) my -= 1;
       if (keys["ArrowDown"]  || keys["s"] || keys["S"]) my += 1;
       if (mx !== 0 && my !== 0) { mx *= 0.7071; my *= 0.7071; }
-      const displayScale = canvas.clientWidth <= 500 ? 1.0 : canvas.clientWidth / 320;
-      player.x += mx * P_SPEED / displayScale;
-      player.y += my * P_SPEED / displayScale;
+      const desktopScale    = isMobile ? 1.0 : canvas.clientWidth / 320;
+      const playerSpeedMult = isMobile ? 1.0 : 0.8;
+      const enemySpeedMult  = isMobile ? P_SPEED * 0.8 : 0.8;
+      player.x += mx * P_SPEED * playerSpeedMult / desktopScale;
+      player.y += my * P_SPEED * playerSpeedMult / desktopScale;
 
       const walls = buildWalls(roomIdx);
       resolveWalls(walls);
@@ -814,8 +819,8 @@ export default function GamePage() {
       for (const e of rs.enemies) {
         if (--e.wanderTimer <= 0) {
           const ang = Math.random() * Math.PI * 2;
-          e.vx = Math.cos(ang) * e.speed;
-          e.vy = Math.sin(ang) * e.speed;
+          e.vx = Math.cos(ang) * e.speed * enemySpeedMult;
+          e.vy = Math.sin(ang) * e.speed * enemySpeedMult;
           e.wanderTimer = 60 + Math.floor(Math.random() * 120);
         }
         const nx = e.x + e.vx, ny = e.y + e.vy;
@@ -824,8 +829,8 @@ export default function GamePage() {
         for (const w of walls) { if (overlap(eRect, w)) { blocked = true; break; } }
         if (blocked) {
           const ang = Math.random() * Math.PI * 2;
-          e.vx = Math.cos(ang) * e.speed;
-          e.vy = Math.sin(ang) * e.speed;
+          e.vx = Math.cos(ang) * e.speed * enemySpeedMult;
+          e.vy = Math.sin(ang) * e.speed * enemySpeedMult;
           e.wanderTimer = 60 + Math.floor(Math.random() * 120);
         } else { e.x = nx; e.y = ny; }
         e.stuckCount++;
@@ -907,6 +912,7 @@ export default function GamePage() {
           score += 100;
           if (roomSector === 2) {
             score += 500;
+            score += lives * 100;
             completionTime = Math.round((performance.now() - gameStartTime) / 1000);
             nameEntry.mode = "choose"; nameEntry.selection = 0;
             nameEntry.input = ""; nameEntry.error = ""; nameEntry.errorTimer = 0;
@@ -940,9 +946,8 @@ export default function GamePage() {
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const displayScale = canvas.clientWidth <= 500 ? 1.0 : canvas.clientWidth / 320;
-        daemon.x += (dx / dist) * daemon.speed / displayScale;
-        daemon.y += (dy / dist) * daemon.speed / displayScale;
+        daemon.x += (dx / dist) * daemon.speed * playerSpeedMult / desktopScale;
+        daemon.y += (dy / dist) * daemon.speed * playerSpeedMult / desktopScale;
         if (iframes <= 0 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
           sndDeath(); shakeFrames = 22;
           triggerGameOver();
@@ -1069,6 +1074,7 @@ export default function GamePage() {
       if (daemon.active) drawDaemon(t);
       drawPlayer(t);
       if (flashFrames > 0) drawFlashMsg();
+      if (phase === "playing") drawControlsLegend();
 
       ctx.restore();
 
@@ -1638,6 +1644,21 @@ export default function GamePage() {
       ctx.shadowBlur  = 0;
       ctx.shadowColor = "transparent";
       ctx.textAlign   = "left";
+      ctx.restore();
+    }
+
+    // ── Desktop controls legend ─────────────────────────────────────────────
+    function drawControlsLegend() {
+      if (canvas.clientWidth <= 500) return;
+      const x = W - 14;
+      const y = GH - 14;
+      ctx.save();
+      ctx.globalAlpha = 0.28;
+      ctx.textAlign   = "right";
+      ctx.font        = "10px monospace";
+      ctx.fillStyle   = GREEN;
+      ctx.fillText("WASD  ·  ARROW KEYS", x, y - 14);
+      ctx.fillText("MOVE", x, y);
       ctx.restore();
     }
 
