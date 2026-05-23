@@ -347,7 +347,7 @@ export default function GamePage() {
     let audioCtx             = null;
     let soundEnabled         = true;
     let bgAudio              = null;
-    let sectorCompleteBuffer = null;
+    let sectorVoiceEl        = null;  // HTML Audio element routed through AudioContext
     let bgMusicVolume        = 0.3;
     let audioUnlocked        = false;
     let gameStartTime        = 0;
@@ -646,26 +646,32 @@ export default function GamePage() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === "suspended") audioCtx.resume();
       if (soundEnabled) startBgMusic();
-      // Pre-load sector-complete voice as an AudioBuffer so it can be played on mobile
-      // (HTML Audio.play() is blocked on mobile outside a direct user gesture; AudioBuffer is not)
-      const ctx = audioCtx;
-      fetch("/sounds/sector-complete.mp3")
-        .then(r => r.arrayBuffer())
-        .then(ab => ctx.decodeAudioData(ab))
-        .then(buf => { sectorCompleteBuffer = buf; })
-        .catch(() => {});
+      // Route sector-complete voice through the AudioContext via createMediaElementSource().
+      // iOS blocks fetch()+decodeAudioData() for audio buffers even after AudioContext unlock,
+      // but an HTML Audio element created and connected here (within the user gesture) works
+      // reliably on iOS Safari, Chrome, and Edge (all WebKit under the hood).
+      if (!sectorVoiceEl) {
+        try {
+          sectorVoiceEl = new Audio("/sounds/sector-complete.mp3");
+          sectorVoiceEl.preload = "auto";
+          const mediaSrc = audioCtx.createMediaElementSource(sectorVoiceEl);
+          const g = audioCtx.createGain();
+          g.gain.value = 0.85;
+          mediaSrc.connect(g);
+          g.connect(audioCtx.destination);
+        } catch(e) {
+          sectorVoiceEl = null;
+        }
+      }
     }
 
     function playSectorCompleteVoice() {
-      if (!soundEnabled || !audioCtx || !sectorCompleteBuffer) return;
+      if (!soundEnabled || !sectorVoiceEl) return;
+      // Ensure AudioContext is running — iOS can re-suspend it after the initial unlock
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
       try {
-        const src = audioCtx.createBufferSource();
-        src.buffer = sectorCompleteBuffer;
-        const g = audioCtx.createGain();
-        g.gain.value = 0.85;
-        src.connect(g);
-        g.connect(audioCtx.destination);
-        src.start();
+        sectorVoiceEl.currentTime = 0;
+        sectorVoiceEl.play().catch(() => {});
       } catch(e) {}
     }
 
@@ -1875,6 +1881,10 @@ export default function GamePage() {
       // this fires before the window-level bubbling listener, guaranteeing unlock
       // happens before any game logic on the very first tap.
       unlockAudio();
+      // iOS can re-suspend the AudioContext after initial unlock (e.g. after an audio
+      // interruption). unlockAudio() short-circuits on re-entry, so resume explicitly
+      // here on every touch while still inside the user gesture.
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
       const rect  = canvas.getBoundingClientRect();
       const touch = e.touches[0] || e.changedTouches[0];
       const cx    = (touch.clientX - rect.left) * (W / rect.width);
