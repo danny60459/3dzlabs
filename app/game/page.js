@@ -345,6 +345,10 @@ export default function GamePage() {
     let flashMsg             = "";
     let flashFrames          = 0;
     let audioCtx             = null;
+    let soundEnabled         = true;
+    let bgAudio              = null;
+    let sectorCompleteAudio  = null;
+    let bgMusicVolume        = 0.3;
     let gameStartTime        = 0;
     let completionTime       = 0;
     let lastSubmittedId      = "";
@@ -459,6 +463,7 @@ export default function GamePage() {
       daemon.x        = 0;
       daemon.y        = 0;
       daemon.spawnAge = 0;
+      unduckMusic();
       if (idx === 2 && !checkpoint) {
         checkpoint = { score, lives };
       }
@@ -468,11 +473,13 @@ export default function GamePage() {
     function ac() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === "suspended") audioCtx.resume();
+      startBgMusic();
       return audioCtx;
     }
 
     // Two-tone pickup beep
     function sndLoot() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         [660, 1050].forEach((freq, i) => {
@@ -489,6 +496,7 @@ export default function GamePage() {
 
     // Warm ascending chord on heart pickup
     function sndHeart() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         [523, 659, 784, 1047].forEach((freq, i) => {
@@ -505,6 +513,7 @@ export default function GamePage() {
 
     // Low thump once per second while timer ≤ 15
     function sndWarnPulse() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         const osc = c.createOscillator(), g = c.createGain();
@@ -519,6 +528,7 @@ export default function GamePage() {
 
     // Rising sawtooth sweep when daemon materialises
     function sndDaemonSpawn() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         const osc = c.createOscillator(), filt = c.createBiquadFilter(), g = c.createGain();
@@ -539,6 +549,7 @@ export default function GamePage() {
 
     // Noise burst + descending pitch sweep on hit / death
     function sndDeath() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         const len = Math.floor(c.sampleRate * 0.55);
@@ -565,6 +576,7 @@ export default function GamePage() {
 
     // Three-note ascending chime on room clear
     function sndRoomClear() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         [523, 659, 784].forEach((freq, i) => {
@@ -581,6 +593,7 @@ export default function GamePage() {
 
     // Four-note arpeggio with held final note on sector clear
     function sndSectorFanfare() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         [523, 659, 784, 1047].forEach((freq, i) => {
@@ -598,6 +611,7 @@ export default function GamePage() {
 
     // Extended ascending run with big final note on full victory
     function sndWinFanfare() {
+      if (!soundEnabled) return;
       try {
         const c = ac(), now = c.currentTime;
         [523, 659, 784, 1047, 784, 1047, 1568].forEach((freq, i) => {
@@ -611,6 +625,53 @@ export default function GamePage() {
           osc.start(t0); osc.stop(t0 + (last ? 0.91 : 0.15));
         });
       } catch(e) {}
+    }
+
+    // ── Background music, ducking & sound toggle ───────────────────────────
+    function startBgMusic() {
+      if (bgAudio) return;
+      bgAudio        = new Audio("/music/background.mp3");
+      bgAudio.loop   = true;
+      bgAudio.volume = bgMusicVolume;
+      bgAudio.muted  = !soundEnabled;
+      bgAudio.play().catch(() => {});
+    }
+
+    function playSectorCompleteVoice() {
+      if (!soundEnabled) return;
+      if (!sectorCompleteAudio) sectorCompleteAudio = new Audio("/sounds/sector-complete.mp3");
+      sectorCompleteAudio.currentTime = 0;
+      sectorCompleteAudio.play().catch(() => {});
+    }
+
+    function duckMusic() {
+      bgMusicVolume = 0.1;
+      if (bgAudio) bgAudio.volume = bgMusicVolume;
+    }
+
+    function unduckMusic() {
+      bgMusicVolume = 0.3;
+      if (bgAudio) bgAudio.volume = bgMusicVolume;
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      if (bgAudio) bgAudio.muted = !soundEnabled;
+    }
+
+    function drawSoundBtn(x, y, w, h) {
+      ctx.save();
+      ctx.fillStyle   = soundEnabled ? "rgba(0,255,160,0.06)" : "rgba(255,48,96,0.07)";
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = soundEnabled ? "rgba(0,204,122,0.45)" : "rgba(255,48,96,0.55)";
+      ctx.lineWidth   = 1;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle   = soundEnabled ? DIM : RED;
+      ctx.font        = "bold 12px monospace";
+      ctx.textAlign   = "center";
+      ctx.shadowBlur  = 0;
+      ctx.fillText(soundEnabled ? "♪  ON" : "✕  OFF", x + w / 2, y + h / 2 + 4);
+      ctx.restore();
     }
 
     // ── Input ──────────────────────────────────────────────────────────────
@@ -628,6 +689,7 @@ export default function GamePage() {
       if (e.key !== "Enter") return;
       if (phase === "title") {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        startBgMusic();
         phase = "playing"; lastTick = performance.now(); gameStartTime = performance.now();
       } else if (phase === "sectorComplete") { enterSector(sectorIdx + 1); phase = "playing"; }
         else if (phase === "continue")       { useContinue(); }
@@ -930,7 +992,7 @@ export default function GamePage() {
             nameEntry.input = ""; nameEntry.error = ""; nameEntry.errorTimer = 0;
             phase = "nameEntry"; sndWinFanfare();
           }
-          else                 { phase = "sectorComplete"; sndSectorFanfare(); }
+          else                 { phase = "sectorComplete"; sndSectorFanfare(); duckMusic(); playSectorCompleteVoice(); }
           return;
         }
         if (rs.treasures.every(t => t.collected)) sndRoomClear();
@@ -1003,6 +1065,7 @@ export default function GamePage() {
         ctx.fillText("TAP  ·  PRESS ENTER  ·  TO START", W / 2, 395);
         ctx.shadowBlur = 0;
       }
+      drawSoundBtn(16, H - 48, 96, 26);
       ctx.textAlign = "left";
       ctx.shadowColor = "transparent";
     }
@@ -1135,6 +1198,7 @@ export default function GamePage() {
       ctx.fillStyle = GREEN;
       ctx.fillText(`SEC ${sectorIdx + 1}/3  RM ${localRoom + 1}/3`, W - 16, 46);
 
+      drawSoundBtn(512, 12, 80, 36);
       ctx.textAlign = "left";
     }
 
@@ -1775,8 +1839,19 @@ export default function GamePage() {
     // ── Touch-to-action (title tap, sector-complete tap, restart tap) ──────
     const onCanvasTouch = (e) => {
       e.preventDefault();
+      const rect  = canvas.getBoundingClientRect();
+      const touch = e.touches[0] || e.changedTouches[0];
+      const cx    = (touch.clientX - rect.left) * (W / rect.width);
+      const cy    = (touch.clientY - rect.top)  * (H / rect.height);
+      if (phase === "title" && cx >= 16 && cx < 112 && cy >= H - 48 && cy < H - 22) {
+        toggleSound(); return;
+      }
+      if ((phase === "playing" || phase === "gameover") && cx >= 512 && cx < 592 && cy >= 12 && cy < 48) {
+        toggleSound(); return;
+      }
       if (phase === "title") {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        startBgMusic();
         phase = "playing"; lastTick = performance.now(); gameStartTime = performance.now();
       } else if (phase === "sectorComplete") {
         enterSector(sectorIdx + 1); phase = "playing";
@@ -1789,10 +1864,6 @@ export default function GamePage() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         restart();
       } else if (phase === "nameEntry") {
-        const rect  = canvas.getBoundingClientRect();
-        const touch = e.touches[0] || e.changedTouches[0];
-        const cx    = (touch.clientX - rect.left) * (W / rect.width);
-        const cy    = (touch.clientY - rect.top)  * (H / rect.height);
         if (nameEntry.mode === "choose") {
           const btnW = 190, btnH = 78, btnY = H / 2 - 52;
           if (cy >= btnY && cy <= btnY + btnH) {
@@ -1812,6 +1883,18 @@ export default function GamePage() {
         }
       }
     };
+    const onCanvasClick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx   = (e.clientX - rect.left) * (W / rect.width);
+      const cy   = (e.clientY - rect.top)  * (H / rect.height);
+      if (phase === "title" && cx >= 16 && cx < 112 && cy >= H - 48 && cy < H - 22) {
+        toggleSound(); return;
+      }
+      if ((phase === "playing" || phase === "gameover") && cx >= 512 && cx < 592 && cy >= 12 && cy < 48) {
+        toggleSound(); return;
+      }
+    };
+    canvas.addEventListener("click", onCanvasClick);
     canvas.addEventListener("touchstart", onCanvasTouch, { passive: false });
 
     // ── Game loop ───────────────────────────────────────────────────────────
@@ -1821,6 +1904,7 @@ export default function GamePage() {
 
     return () => {
       cancelAnimationFrame(raf);
+      canvas.removeEventListener("click",      onCanvasClick);
       canvas.removeEventListener("touchstart", onCanvasTouch);
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup",   onUp);
@@ -1829,6 +1913,7 @@ export default function GamePage() {
       window.removeEventListener("keydown", onNameKey);
       hiddenInput.blur();
       document.body.removeChild(hiddenInput);
+      if (bgAudio) { bgAudio.pause(); bgAudio = null; }
       if (audioCtx) { audioCtx.close(); audioCtx = null; }
     };
   }, []);
