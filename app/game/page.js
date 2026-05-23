@@ -802,7 +802,7 @@ export default function GamePage() {
       if (keys["ArrowUp"]    || keys["w"] || keys["W"]) my -= 1;
       if (keys["ArrowDown"]  || keys["s"] || keys["S"]) my += 1;
       if (mx !== 0 && my !== 0) { mx *= 0.7071; my *= 0.7071; }
-      const displayScale = Math.max(1, canvas.clientWidth / 320);
+      const displayScale = canvas.clientWidth <= 500 ? 1.0 : canvas.clientWidth / 320;
       player.x += mx * P_SPEED / displayScale;
       player.y += my * P_SPEED / displayScale;
 
@@ -900,10 +900,12 @@ export default function GamePage() {
 
       // Check sector / room complete
       if (gotLoot) {
-        const [sStart, sEnd] = SECTOR_RANGES[sectorIdx];
+        const roomSector = SECTOR_RANGES.findIndex(([s, e]) => roomIdx >= s && roomIdx < e);
+        sectorIdx = roomSector;
+        const [sStart, sEnd] = SECTOR_RANGES[roomSector];
         if (roomStates.slice(sStart, sEnd).every(s => s.treasures.every(t => t.collected))) {
           score += 100;
-          if (sectorIdx === 2) {
+          if (roomSector === 2) {
             score += 500;
             completionTime = Math.round((performance.now() - gameStartTime) / 1000);
             nameEntry.mode = "choose"; nameEntry.selection = 0;
@@ -938,7 +940,7 @@ export default function GamePage() {
         const dx = player.x - daemon.x;
         const dy = player.y - daemon.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const displayScale = Math.max(1, canvas.clientWidth / 320);
+        const displayScale = canvas.clientWidth <= 500 ? 1.0 : canvas.clientWidth / 320;
         daemon.x += (dx / dist) * daemon.speed / displayScale;
         daemon.y += (dy / dist) * daemon.speed / displayScale;
         if (iframes <= 0 && overlap(pRect(), { x: daemon.x - D_SZ/2, y: daemon.y - D_SZ/2, w: D_SZ, h: D_SZ })) {
