@@ -31,7 +31,7 @@ export default function ToolCard({ tool }) {
   return (
     <a
       ref={ref}
-      href={tool.url}
+      href={tool.referralUrl ?? tool.url}
       target="_blank"
       rel="noopener noreferrer"
       data-tool-card
