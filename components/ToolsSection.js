@@ -20,6 +20,8 @@ const FUSE_OPTS = {
   threshold: 0.35,
 };
 
+const featuredTools = tools.filter((t) => t.featured);
+
 export default function ToolsSection() {
   const [query, setQuery]               = useState("");
   const [activeCategory, setCategory]   = useState(null);
@@ -136,6 +138,30 @@ export default function ToolsSection() {
           </button>
         ))}
       </div>
+
+      {/* ── Featured Tools ───────────────────────────────────────────────── */}
+      {!query.trim() && !activeCategory && (
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#00ff88" }}>
+              ⭐ Featured Tools
+            </span>
+            <span className="flex-1 border-t border-brand-border" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {featuredTools.map((tool) => (
+              <div
+                key={tool.id}
+                className="rounded-sm"
+                style={{ boxShadow: "0 0 16px 2px #00ff88, 0 0 32px 4px #00ff4455" }}
+              >
+                <ToolCard tool={tool} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 border-t border-brand-border" />
+        </div>
+      )}
 
       {/* ── Section header ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-6">
