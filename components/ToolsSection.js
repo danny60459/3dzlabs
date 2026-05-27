@@ -163,6 +163,25 @@ export default function ToolsSection() {
         </div>
       )}
 
+      {/* ── Learning Hub promo ───────────────────────────────────────────── */}
+      {!query.trim() && !activeCategory && (
+        <div className="mb-10 border border-brand-border bg-brand-surface px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-brand-text tracking-widest uppercase mb-1">// ai.learning</p>
+            <h2 className="text-lg font-bold text-brand-green mb-1">AI Learning Hub</h2>
+            <p className="text-xs text-brand-text leading-relaxed">
+              Curated courses &amp; certifications to level up your AI skills in 2026 — from beginner to advanced.
+            </p>
+          </div>
+          <a
+            href="/learning"
+            className="shrink-0 text-xs border border-brand-green text-brand-green hover:bg-brand-green hover:text-black transition-colors duration-200 px-5 py-2.5 tracking-widest font-bold"
+          >
+            &gt; explore courses &rarr;
+          </a>
+        </div>
+      )}
+
       {/* ── Section header ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-6">
         <span className="text-xs text-brand-text tracking-widest uppercase">./tools</span>

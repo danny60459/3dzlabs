@@ -14,7 +14,7 @@ export default function TerminalHeader() {
         <span className="text-brand-text text-xs">— AI Tools Command Center</span>
       </div>
       <nav className="flex gap-6 text-xs text-brand-text">
-        <a href="#tools" className="hover:text-brand-green transition-colors">./tools</a>
+        <a href="/" className="hover:text-brand-green transition-colors">./tools</a>
         <a href="/learning" className="hover:text-brand-green transition-colors">./learning</a>
         <a href="#about" className="hover:text-brand-green transition-colors">./about</a>
         <a href="#submit" className="hover:text-brand-green transition-colors">./submit</a>
