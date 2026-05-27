@@ -20,6 +20,9 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="impact-site-verification" value="f9b28a66-d4c5-4330-8f46-b1ea072a54a5" />
+      </head>
       <body className={`${geistMono.variable} font-mono bg-brand-bg text-brand-green antialiased`}>
         {children}
       </body>
