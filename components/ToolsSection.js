@@ -166,20 +166,35 @@ export default function ToolsSection() {
       {/* ── Learning Hub promo ───────────────────────────────────────────── */}
       {!query.trim() && !activeCategory && (
         <div
-          className="mb-10 px-8 py-8 flex flex-col sm:flex-row sm:items-center gap-6"
-          style={{ background: "#00ff88" }}
+          className="mb-10 px-8 py-8 flex flex-col sm:flex-row sm:items-center gap-6 relative overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, #001a0d 0%, #0a0a0a 60%)",
+            border: "1px solid #00ff88",
+            boxShadow: "0 0 20px 3px #00ff88, 0 0 40px 6px #00ff4455",
+          }}
         >
-          <div className="flex-1 min-w-0">
-            <p className="text-xs tracking-widest uppercase mb-1" style={{ color: "rgba(0,0,0,0.55)" }}>// ai.learning</p>
-            <h2 className="text-2xl font-bold mb-2" style={{ color: "#000" }}>🎓 AI Learning Hub</h2>
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(0,0,0,0.7)" }}>
+          {/* Subtle scanline overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.025) 2px,rgba(0,255,136,0.025) 4px)",
+            }}
+          />
+
+          <div className="relative flex-1 min-w-0">
+            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "#00ff88" }}>// ai.learning</p>
+            <h2 className="text-2xl font-bold mb-3 text-brand-green">🎓 AI Learning Hub</h2>
+            {/* Decorative divider */}
+            <div className="w-12 h-px mb-3" style={{ background: "#00ff88", opacity: 0.5 }} />
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(200,220,210,0.85)" }}>
               Curated courses &amp; certifications to level up your AI skills in 2026 — from beginner to advanced.
             </p>
           </div>
+
           <a
             href="/learning"
-            className="shrink-0 text-xs px-6 py-3 tracking-widest font-bold transition-opacity duration-200 hover:opacity-80"
-            style={{ background: "#03050f", color: "#00ff88" }}
+            className="relative shrink-0 text-xs px-6 py-3 tracking-widest font-bold transition-colors duration-200 hover:bg-brand-green hover:text-black"
+            style={{ border: "1px solid #00ff88", color: "#00ff88", background: "transparent" }}
           >
             &gt; explore courses &rarr;
           </a>
