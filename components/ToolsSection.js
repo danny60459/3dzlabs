@@ -165,17 +165,21 @@ export default function ToolsSection() {
 
       {/* ── Learning Hub promo ───────────────────────────────────────────── */}
       {!query.trim() && !activeCategory && (
-        <div className="mb-10 border border-brand-border bg-brand-surface px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div
+          className="mb-10 px-8 py-8 flex flex-col sm:flex-row sm:items-center gap-6"
+          style={{ background: "#00ff88" }}
+        >
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-brand-text tracking-widest uppercase mb-1">// ai.learning</p>
-            <h2 className="text-lg font-bold text-brand-green mb-1">AI Learning Hub</h2>
-            <p className="text-xs text-brand-text leading-relaxed">
+            <p className="text-xs tracking-widest uppercase mb-1" style={{ color: "rgba(0,0,0,0.55)" }}>// ai.learning</p>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: "#000" }}>🎓 AI Learning Hub</h2>
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(0,0,0,0.7)" }}>
               Curated courses &amp; certifications to level up your AI skills in 2026 — from beginner to advanced.
             </p>
           </div>
           <a
             href="/learning"
-            className="shrink-0 text-xs border border-brand-green text-brand-green hover:bg-brand-green hover:text-black transition-colors duration-200 px-5 py-2.5 tracking-widest font-bold"
+            className="shrink-0 text-xs px-6 py-3 tracking-widest font-bold transition-opacity duration-200 hover:opacity-80"
+            style={{ background: "#03050f", color: "#00ff88" }}
           >
             &gt; explore courses &rarr;
           </a>
