@@ -15,6 +15,7 @@ export default function TerminalHeader() {
       </div>
       <nav className="flex gap-6 text-xs text-brand-text">
         <a href="#tools" className="hover:text-brand-green transition-colors">./tools</a>
+        <a href="/learning" className="hover:text-brand-green transition-colors">./learning</a>
         <a href="#about" className="hover:text-brand-green transition-colors">./about</a>
         <a href="#submit" className="hover:text-brand-green transition-colors">./submit</a>
       </nav>
