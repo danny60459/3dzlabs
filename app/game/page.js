@@ -762,6 +762,12 @@ export default function GamePage() {
     window.addEventListener("keydown", onR);
     window.addEventListener("keydown", onEnter);
     window.addEventListener("keydown", onNameKey);
+    const onPreventScroll = (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onPreventScroll, { passive: false });
 
     // ── Geometry helpers ───────────────────────────────────────────────────
     function overlap(a, b) {
@@ -1959,6 +1965,7 @@ export default function GamePage() {
       window.removeEventListener("keydown", onR);
       window.removeEventListener("keydown", onEnter);
       window.removeEventListener("keydown", onNameKey);
+      window.removeEventListener("keydown", onPreventScroll);
       hiddenInput.blur();
       document.body.removeChild(hiddenInput);
       if (bgAudio) { bgAudio.pause(); bgAudio = null; }
@@ -2097,7 +2104,7 @@ export default function GamePage() {
 
   return (
     <main style={{
-      minHeight:      "100svh",
+      height:         "100svh",
       background:     "#03050f",
       display:        "flex",
       flexDirection:  isLandscape ? "row" : "column",
