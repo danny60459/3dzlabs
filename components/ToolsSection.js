@@ -29,7 +29,9 @@ export default function ToolsSection() {
 
   // ── Filtered results ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const base = activeCategory
+    const base = activeCategory === "Affiliates"
+      ? tools.filter((t) => t.referralUrl)
+      : activeCategory
       ? tools.filter((t) => t.category === activeCategory)
       : tools;
     if (!query.trim()) return base;
@@ -137,6 +139,16 @@ export default function ToolsSection() {
             {cat}
           </button>
         ))}
+        <button
+          onClick={() => toggleCategory("Affiliates")}
+          className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
+            ${activeCategory === "Affiliates"
+              ? "border-brand-green text-brand-green bg-brand-green/10"
+              : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
+            }`}
+        >
+          ★ Affiliates
+        </button>
       </div>
 
       {/* ── Featured Tools ───────────────────────────────────────────────── */}
