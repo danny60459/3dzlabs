@@ -45,15 +45,20 @@ body::before {
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: #0a0a0a;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: #00ff88;
+  box-shadow: 0 0 6px 2px #00ff88, 0 0 12px 4px #00ff4455;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
+  background: #00ff88;
+  box-shadow: 0 0 10px 4px #00ff88, 0 0 20px 8px #00ff4455;
 }
 
 /* Selection */

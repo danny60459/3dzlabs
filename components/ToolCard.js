@@ -80,7 +80,7 @@ export default function ToolCard({ tool }) {
         {tool.referralUrl && (
           <span className="text-xs border border-brand-border px-1.5 py-0.5 rounded-sm"
                 style={{ color: "rgba(0,255,136,0.45)", borderColor: "rgba(0,255,136,0.2)" }}>
-            affiliate
+            {tool.badgeLabel ?? "affiliate"}
           </span>
         )}
       </div>
