@@ -152,7 +152,7 @@ export default function ToolsSection() {
             {featuredTools.map((tool) => (
               <div
                 key={tool.id}
-                className="rounded-sm"
+                className="h-full rounded-sm"
                 style={{ boxShadow: "0 0 16px 2px #00ff88, 0 0 32px 4px #00ff4455" }}
               >
                 <ToolCard tool={tool} />

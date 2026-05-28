@@ -25,6 +25,13 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`${geistMono.variable} font-mono bg-brand-bg text-brand-green antialiased`}>
         {children}
+        <footer className="border-t border-brand-border px-6 py-4 text-center"
+                style={{ background: "#0a0a0a" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "rgba(120,150,130,0.55)" }}>
+            Some links on this site are affiliate or referral links. If you sign up through them,
+            we may earn a small commission at no extra cost to you.
+          </p>
+        </footer>
       </body>
     </html>
   );

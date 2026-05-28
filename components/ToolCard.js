@@ -35,7 +35,7 @@ export default function ToolCard({ tool }) {
       target="_blank"
       rel="noopener noreferrer"
       data-tool-card
-      className="tool-card group flex flex-col bg-brand-surface border border-brand-border
+      className="tool-card group flex flex-col h-full bg-brand-surface border border-brand-border
                  hover:border-brand-green transition-colors duration-200 p-5 rounded-sm
                  relative overflow-hidden"
     >
@@ -73,8 +73,16 @@ export default function ToolCard({ tool }) {
         ))}
       </div>
 
-      <div className="text-xs text-brand-text group-hover:text-brand-green transition-colors mt-auto">
-        &gt; visit tool &rarr;
+      <div className="flex items-center justify-between mt-auto">
+        <div className="text-xs text-brand-text group-hover:text-brand-green transition-colors">
+          &gt; visit tool &rarr;
+        </div>
+        {tool.referralUrl && (
+          <span className="text-xs border border-brand-border px-1.5 py-0.5 rounded-sm"
+                style={{ color: "rgba(0,255,136,0.45)", borderColor: "rgba(0,255,136,0.2)" }}>
+            affiliate
+          </span>
+        )}
       </div>
     </a>
   );
