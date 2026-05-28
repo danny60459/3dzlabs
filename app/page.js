@@ -103,8 +103,17 @@ export default function Home() {
                 <p className="text-sm font-mono text-brand-text leading-relaxed mb-2">
                   A terminal dungeon crawler &mdash; collect loot before the DAEMON arrives.
                 </p>
-                <p className="text-xs font-mono text-brand-text tracking-widest" style={{opacity:0.45}}>
-                  3 SECTORS &nbsp;&middot;&nbsp; 9 ROOMS &nbsp;&middot;&nbsp; WEB AUDIO &nbsp;&middot;&nbsp; WASD / ARROW KEYS
+                <p className="text-xs font-mono text-brand-text tracking-widest mb-3">
+                  3 SECTORS &nbsp;&middot;&nbsp; 9 ROOMS &nbsp;&middot;&nbsp; WEB AUDIO
+                </p>
+                <p className="text-sm font-mono text-brand-text leading-relaxed mb-2">
+                  Move through rooms, collect loot, and escape before the DAEMON catches you.
+                </p>
+                <p className="text-xs font-mono text-brand-text leading-relaxed mb-1">
+                  🖥️&nbsp; DESKTOP: WASD or Arrow Keys to move
+                </p>
+                <p className="text-xs font-mono text-brand-text leading-relaxed">
+                  📱&nbsp; MOBILE: Tap the on-screen D-pad
                 </p>
               </div>
 
