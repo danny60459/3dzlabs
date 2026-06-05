@@ -22,9 +22,12 @@ const FUSE_OPTS = {
 
 const featuredTools = tools.filter((t) => t.featured);
 
+const PRICING_OPTIONS = ["Free", "Free Limited", "Paid", "Pay Per Use"];
+
 export default function ToolsSection() {
   const [query, setQuery]               = useState("");
   const [activeCategory, setCategory]   = useState(null);
+  const [activePricing, setPricing]     = useState(null);
   const gridRef                         = useRef(null);
 
   // ── Filtered results ────────────────────────────────────────────────────
@@ -34,9 +37,12 @@ export default function ToolsSection() {
       : activeCategory
       ? tools.filter((t) => t.category === activeCategory)
       : tools;
-    if (!query.trim()) return base;
-    return new Fuse(base, FUSE_OPTS).search(query).map((r) => r.item);
-  }, [query, activeCategory]);
+    const priced = activePricing
+      ? base.filter((t) => t.pricing?.toLowerCase() === activePricing.toLowerCase())
+      : base;
+    if (!query.trim()) return priced;
+    return new Fuse(priced, FUSE_OPTS).search(query).map((r) => r.item);
+  }, [query, activeCategory, activePricing]);
 
   // ── Per-card ScrollTrigger (fires once each as card enters viewport) ────
   useEffect(() => {
@@ -66,6 +72,9 @@ export default function ToolsSection() {
 
   const toggleCategory = (cat) =>
     setCategory((prev) => (prev === cat ? null : cat));
+
+  const togglePricing = (p) =>
+    setPricing((prev) => (prev === p ? null : p));
 
   return (
     <section id="tools" className="pb-16">
@@ -107,7 +116,7 @@ export default function ToolsSection() {
       </div>
 
       {/* ── Category pills ───────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-3">
         <button
           onClick={() => setCategory(null)}
           className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
@@ -151,8 +160,36 @@ export default function ToolsSection() {
         </button>
       </div>
 
+      {/* ── Pricing pills ────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 mb-8">
+        <span className="text-brand-green-dim text-xs select-none shrink-0">PRICE://</span>
+        <button
+          onClick={() => setPricing(null)}
+          className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
+            ${activePricing === null
+              ? "border-brand-green text-brand-green bg-brand-green/10"
+              : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
+            }`}
+        >
+          All
+        </button>
+        {PRICING_OPTIONS.map((p) => (
+          <button
+            key={p}
+            onClick={() => togglePricing(p)}
+            className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
+              ${activePricing === p
+                ? "border-brand-green text-brand-green bg-brand-green/10"
+                : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
+              }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
       {/* ── Featured Tools ───────────────────────────────────────────────── */}
-      {!query.trim() && !activeCategory && (
+      {!query.trim() && !activeCategory && !activePricing && (
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#00ff88" }}>
@@ -176,7 +213,7 @@ export default function ToolsSection() {
       )}
 
       {/* ── Learning Hub promo ───────────────────────────────────────────── */}
-      {!query.trim() && !activeCategory && (
+      {!query.trim() && !activeCategory && !activePricing && (
         <div
           className="mb-10 px-8 py-8 flex flex-col sm:flex-row sm:items-center gap-6 relative overflow-hidden"
           style={{
