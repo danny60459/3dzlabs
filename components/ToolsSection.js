@@ -79,44 +79,78 @@ export default function ToolsSection() {
   return (
     <section id="tools" className="pb-16">
 
-      {/* ── SEARCH:// bar ────────────────────────────────────────────────── */}
-      <div className="mb-5">
-        <div className="flex items-center gap-3 border border-brand-border bg-brand-surface px-4 py-3
-                        max-w-md focus-within:border-brand-green transition-colors duration-200">
-          <span className="text-brand-green-dim text-sm select-none shrink-0">SEARCH://</span>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="filter tools..."
-            autoComplete="off"
-            spellCheck={false}
-            className="flex-1 bg-transparent text-brand-green text-sm outline-none
-                       placeholder:text-brand-text placeholder:opacity-40 caret-brand-green"
-          />
-          {query && (
+      {/* ── Search + Price filter box ────────────────────────────────────── */}
+      <div
+        className="mb-5 p-4"
+        style={{ background: "rgba(0, 255, 136, 0.05)", border: "1px solid rgba(0, 255, 136, 0.2)" }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {/* SEARCH:// input */}
+          <div className="flex items-center gap-3 border border-brand-border bg-brand-surface px-4 py-3
+                          flex-1 focus-within:border-brand-green transition-colors duration-200">
+            <span className="text-brand-green-dim text-sm select-none shrink-0">SEARCH://</span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="filter tools..."
+              autoComplete="off"
+              spellCheck={false}
+              className="flex-1 bg-transparent text-brand-green text-sm outline-none
+                         placeholder:text-brand-text placeholder:opacity-40 caret-brand-green"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="text-brand-text hover:text-brand-green text-xs transition-colors shrink-0"
+              >
+                [clear]
+              </button>
+            )}
+          </div>
+          {/* PRICE:// pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-brand-green-dim text-xs select-none shrink-0">PRICE://</span>
             <button
-              onClick={() => setQuery("")}
-              className="text-brand-text hover:text-brand-green text-xs transition-colors shrink-0"
+              onClick={() => setPricing(null)}
+              className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
+                ${activePricing === null
+                  ? "border-brand-green text-brand-green bg-brand-green/10"
+                  : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
+                }`}
             >
-              [clear]
+              All
             </button>
-          )}
+            {PRICING_OPTIONS.map((p) => (
+              <button
+                key={p}
+                onClick={() => togglePricing(p)}
+                className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
+                  ${activePricing === p
+                    ? "border-brand-green text-brand-green bg-brand-green/10"
+                    : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
+                  }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
         <p className="mt-2 text-xs text-brand-text h-4">
-          {(query || activeCategory) && (
+          {(query || activeCategory || activePricing) && (
             <>
               <span className="text-brand-green">&gt;</span>{" "}
               {filtered.length} result{filtered.length !== 1 ? "s" : ""}
               {query && <> for &quot;{query}&quot;</>}
               {activeCategory && <> in <span className="text-brand-green">{activeCategory}</span></>}
+              {activePricing && <> · <span className="text-brand-green">{activePricing}</span></>}
             </>
           )}
         </p>
       </div>
 
       {/* ── Category pills ───────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 mb-3">
+      <div className="flex flex-wrap gap-2 mb-8">
         <button
           onClick={() => setCategory(null)}
           className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
@@ -158,34 +192,6 @@ export default function ToolsSection() {
         >
           ★ Affiliates
         </button>
-      </div>
-
-      {/* ── Pricing pills ────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 mb-8">
-        <span className="text-brand-green-dim text-xs select-none shrink-0">PRICE://</span>
-        <button
-          onClick={() => setPricing(null)}
-          className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
-            ${activePricing === null
-              ? "border-brand-green text-brand-green bg-brand-green/10"
-              : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
-            }`}
-        >
-          All
-        </button>
-        {PRICING_OPTIONS.map((p) => (
-          <button
-            key={p}
-            onClick={() => togglePricing(p)}
-            className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
-              ${activePricing === p
-                ? "border-brand-green text-brand-green bg-brand-green/10"
-                : "border-brand-border text-brand-text hover:border-brand-green hover:text-brand-green"
-              }`}
-          >
-            {p}
-          </button>
-        ))}
       </div>
 
       {/* ── Featured Tools ───────────────────────────────────────────────── */}
