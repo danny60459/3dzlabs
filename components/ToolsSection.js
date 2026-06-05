@@ -20,7 +20,20 @@ const FUSE_OPTS = {
   threshold: 0.35,
 };
 
-const featuredTools = tools.filter((t) => t.featured);
+const affiliateTools = tools.filter((t) => t.referralUrl);
+
+const getDailyFeatured = (affiliateTools) => {
+  const today = new Date();
+  const dayIndex = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
+  const totalTools = affiliateTools.length;
+  const featured = [];
+  for (let i = 0; i < 6; i++) {
+    featured.push(affiliateTools[(dayIndex + i) % totalTools]);
+  }
+  return featured;
+};
+
+const featuredTools = getDailyFeatured(affiliateTools);
 
 const PRICING_OPTIONS = ["Free", "Free Limited", "Paid", "Pay Per Use"];
 
@@ -197,12 +210,13 @@ export default function ToolsSection() {
       {/* ── Featured Tools ───────────────────────────────────────────────── */}
       {!query.trim() && !activeCategory && !activePricing && (
         <div className="mb-10">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-2">
             <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#00ff88" }}>
               ⭐ Featured Tools
             </span>
             <span className="flex-1 border-t border-brand-border" />
           </div>
+          <p className="text-xs text-brand-green-dim mb-6">// ROTATES DAILY</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredTools.map((tool) => (
               <div
