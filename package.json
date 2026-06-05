@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
     "@gsap/react": "^2.1.2",
     "fuse.js": "^7.3.0",
     "gsap": "^3.15.0",

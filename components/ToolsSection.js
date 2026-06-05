@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Fuse from "fuse.js";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -38,13 +38,20 @@ const featuredTools = getDailyFeatured(affiliateTools);
 const PRICING_OPTIONS = ["Free", "Free Limited", "Paid", "Pay Per Use"];
 
 export default function ToolsSection() {
-  const [query, setQuery]               = useState("");
-  const [activeCategory, setCategory]   = useState(null);
-  const [activePricing, setPricing]     = useState(null);
-  const gridRef                         = useRef(null);
+  const [query, setQuery]           = useState("");
+  const [activeCategory, setCategory] = useState(null);
+  const [activePricing, setPricing] = useState(null);
+  const [scanning, setScanning]     = useState(false);
+  const [aiMode, setAiMode]         = useState(false);
+  const [aiIds, setAiIds]           = useState(null);
+  const gridRef                     = useRef(null);
+  const debounceRef                 = useRef(null);
 
   // ── Filtered results ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
+    if (aiIds) {
+      return aiIds.map((id) => tools.find((t) => t.id === id)).filter(Boolean);
+    }
     const base = activeCategory === "Affiliates"
       ? tools.filter((t) => t.referralUrl)
       : activeCategory
@@ -55,7 +62,7 @@ export default function ToolsSection() {
       : base;
     if (!query.trim()) return priced;
     return new Fuse(priced, FUSE_OPTS).search(query).map((r) => r.item);
-  }, [query, activeCategory, activePricing]);
+  }, [query, activeCategory, activePricing, aiIds]);
 
   // ── Per-card ScrollTrigger (fires once each as card enters viewport) ────
   useEffect(() => {
@@ -81,13 +88,71 @@ export default function ToolsSection() {
     });
 
     return () => triggers.forEach((t) => t.kill());
-  }, [filtered]); // rebuild triggers whenever visible set changes
+  }, [filtered]);
 
   const toggleCategory = (cat) =>
     setCategory((prev) => (prev === cat ? null : cat));
 
   const togglePricing = (p) =>
     setPricing((prev) => (prev === p ? null : p));
+
+  // ── AI search ───────────────────────────────────────────────────────────
+  const triggerAiSearch = useCallback(async (q) => {
+    if (q.trim().length < 3) return;
+    setScanning(true);
+    setAiMode(false);
+    setAiIds(null);
+    try {
+      const payload = tools.map((t) => ({
+        id: t.id,
+        name: t.name,
+        tagline: t.tagline,
+        category: t.category,
+        tags: t.tags,
+        hasReferral: !!t.referralUrl,
+      }));
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, tools: payload }),
+      });
+      const ids = await res.json();
+      if (Array.isArray(ids) && ids.length > 0) {
+        setAiIds(ids);
+        setAiMode(true);
+      }
+    } catch {
+      // silent fallback — Fuse results already showing via useMemo
+    } finally {
+      setScanning(false);
+    }
+  }, []);
+
+  const handleQueryChange = (e) => {
+    const val = e.target.value;
+    setQuery(val);
+    setAiMode(false);
+    setAiIds(null);
+    clearTimeout(debounceRef.current);
+    if (val.trim().length >= 3) {
+      debounceRef.current = setTimeout(() => triggerAiSearch(val), 800);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && query.trim().length >= 3) {
+      clearTimeout(debounceRef.current);
+      triggerAiSearch(query);
+    }
+  };
+
+  const handleClear = () => {
+    clearTimeout(debounceRef.current);
+    setQuery("");
+    setAiMode(false);
+    setAiIds(null);
+    setScanning(false);
+  };
 
   return (
     <section id="tools" className="pb-16">
@@ -101,12 +166,18 @@ export default function ToolsSection() {
           {/* SEARCH:// input */}
           <div className="flex items-center gap-3 border border-brand-border bg-brand-surface px-4 py-3
                           flex-1 focus-within:border-brand-green transition-colors duration-200">
-            <span className="text-brand-green-dim text-sm select-none shrink-0">SEARCH://</span>
+            <span className="text-brand-green-dim text-sm select-none shrink-0 flex items-center gap-1.5">
+              SEARCH://
+              <span className="text-xs border border-brand-green/40 text-brand-green px-1 leading-4 rounded-sm">
+                ⚡ AI
+              </span>
+            </span>
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="filter tools..."
+              onChange={handleQueryChange}
+              onKeyDown={handleKeyDown}
+              placeholder="what are you trying to build?"
               autoComplete="off"
               spellCheck={false}
               className="flex-1 bg-transparent text-brand-green text-sm outline-none
@@ -114,7 +185,7 @@ export default function ToolsSection() {
             />
             {query && (
               <button
-                onClick={() => setQuery("")}
+                onClick={handleClear}
                 className="text-brand-text hover:text-brand-green text-xs transition-colors shrink-0"
               >
                 [clear]
@@ -150,7 +221,9 @@ export default function ToolsSection() {
           </div>
         </div>
         <p className="mt-2 text-xs text-brand-text h-4">
-          {(query || activeCategory || activePricing) && (
+          {scanning ? (
+            <span className="text-brand-green-dim">// SCANNING...</span>
+          ) : (query || activeCategory || activePricing) ? (
             <>
               <span className="text-brand-green">&gt;</span>{" "}
               {filtered.length} result{filtered.length !== 1 ? "s" : ""}
@@ -158,7 +231,7 @@ export default function ToolsSection() {
               {activeCategory && <> in <span className="text-brand-green">{activeCategory}</span></>}
               {activePricing && <> · <span className="text-brand-green">{activePricing}</span></>}
             </>
-          )}
+          ) : null}
         </p>
       </div>
 
@@ -242,24 +315,20 @@ export default function ToolsSection() {
             boxShadow: "0 0 20px 3px #00ff88, 0 0 40px 6px #00ff4455",
           }}
         >
-          {/* Subtle scanline overlay */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.025) 2px,rgba(0,255,136,0.025) 4px)",
             }}
           />
-
           <div className="relative flex-1 min-w-0">
             <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "#00ff88" }}>// ai.learning</p>
             <h2 className="text-2xl font-bold mb-3 text-brand-green">🎓 AI Learning Hub</h2>
-            {/* Decorative divider */}
             <div className="w-12 h-px mb-3" style={{ background: "#00ff88", opacity: 0.5 }} />
             <p className="text-sm leading-relaxed" style={{ color: "rgba(200,220,210,0.85)" }}>
               Curated courses &amp; certifications to level up your AI skills in 2026 — from beginner to advanced.
             </p>
           </div>
-
           <a
             href="/learning"
             className="relative shrink-0 text-xs px-6 py-3 tracking-widest font-bold transition-colors duration-200 hover:bg-brand-green hover:text-black"
@@ -272,18 +341,37 @@ export default function ToolsSection() {
 
       {/* ── Section header ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-6">
-        <span className="text-xs text-brand-text tracking-widest uppercase">./tools</span>
-        <span className="text-brand-green-dim text-xs">[{filtered.length} loaded]</span>
+        {scanning ? (
+          <span className="text-xs text-brand-green-dim tracking-widest animate-pulse">// SCANNING...</span>
+        ) : aiMode ? (
+          <>
+            <span className="text-xs text-brand-green tracking-widest font-bold">// AI RECOMMENDED</span>
+            <span className="text-brand-green-dim text-xs">[{filtered.length} found]</span>
+          </>
+        ) : (
+          <>
+            <span className="text-xs text-brand-text tracking-widest uppercase">// TOOLS</span>
+            <span className="text-brand-green-dim text-xs">[{filtered.length} loaded]</span>
+          </>
+        )}
         <span className="flex-1 border-t border-brand-border" />
       </div>
 
       {/* ── Tool grid ────────────────────────────────────────────────────── */}
       <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((tool) => (
-          <ToolCard key={tool.id} tool={tool} />
+          <div key={tool.id} className="relative">
+            {aiMode && tool.referralUrl && (
+              <span className="absolute top-2 right-2 z-10 text-xs text-brand-green bg-brand-surface
+                               border border-brand-green/40 px-1.5 py-0.5 rounded-sm select-none pointer-events-none">
+                ⚡
+              </span>
+            )}
+            <ToolCard tool={tool} />
+          </div>
         ))}
 
-        {filtered.length === 0 && (
+        {filtered.length === 0 && !scanning && (
           <div className="col-span-full py-16 text-center text-brand-text text-sm">
             <span className="text-brand-green">&gt;</span> no tools match{" "}
             {query && <>&quot;{query}&quot;</>}
