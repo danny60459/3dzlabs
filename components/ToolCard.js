@@ -39,6 +39,16 @@ export default function ToolCard({ tool }) {
                  hover:border-brand-green transition-colors duration-200 p-5 rounded-sm
                  relative overflow-hidden"
     >
+      {/* NEW badge */}
+      {tool.badgeLabel === "new" && (
+        <span
+          className="absolute top-0 right-0 text-xs font-bold tracking-widest px-2 py-0.5 z-10 select-none"
+          style={{ background: "#00ffa0", color: "#000", fontSize: "10px" }}
+        >
+          NEW
+        </span>
+      )}
+
       {/* Top accent line on hover */}
       <span className="absolute top-0 left-0 w-0 group-hover:w-full h-px bg-brand-green transition-all duration-300" />
 
@@ -77,7 +87,7 @@ export default function ToolCard({ tool }) {
         <div className="text-xs text-brand-text group-hover:text-brand-green transition-colors">
           &gt; visit tool &rarr;
         </div>
-        {tool.referralUrl && (
+        {tool.referralUrl && tool.badgeLabel !== "new" && (
           <span className="text-xs border border-brand-border px-1.5 py-0.5 rounded-sm"
                 style={{ color: "rgba(0,255,136,0.45)", borderColor: "rgba(0,255,136,0.2)" }}>
             {tool.badgeLabel ?? "affiliate"}

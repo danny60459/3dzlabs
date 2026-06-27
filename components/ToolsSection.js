@@ -22,6 +22,9 @@ const FUSE_OPTS = {
 
 const affiliateTools = tools.filter((t) => t.referralUrl);
 
+const POPULAR_IDS = ["chatgpt", "midjourney", "canva", "elevenlabs", "suno-ai", "runwayml"];
+const popularTools = POPULAR_IDS.map((id) => tools.find((t) => t.id === id)).filter(Boolean);
+
 const getDailyFeatured = (affiliateTools) => {
   const today = new Date();
   const dayIndex = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
@@ -54,6 +57,8 @@ export default function ToolsSection() {
     }
     const base = activeCategory === "Affiliates"
       ? tools.filter((t) => t.referralUrl)
+      : activeCategory === "New"
+      ? tools.filter((t) => t.badgeLabel === "new")
       : activeCategory
       ? tools.filter((t) => t.category === activeCategory)
       : tools;
@@ -278,7 +283,42 @@ export default function ToolsSection() {
         >
           ★ Affiliates
         </button>
+        <button
+          onClick={() => toggleCategory("New")}
+          className={`shrink-0 text-xs px-3 py-1.5 border rounded-sm transition-colors duration-150
+            ${activeCategory === "New"
+              ? "border-[#00ffa0] text-[#00ffa0] bg-[#00ffa0]/10"
+              : "border-brand-border text-brand-text hover:border-[#00ffa0] hover:text-[#00ffa0]"
+            }`}
+        >
+          ✦ New This Month
+        </button>
       </div>
+
+      {/* ── Most Popular ─────────────────────────────────────────────────── */}
+      {!query.trim() && !activeCategory && !activePricing && (
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#00ffa0" }}>
+              🔥 Most Popular
+            </span>
+            <span className="flex-1 border-t border-brand-border" />
+          </div>
+          <p className="text-xs text-brand-green-dim mb-6">// MOST VISITED TOOLS</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {popularTools.map((tool) => (
+              <div
+                key={tool.id}
+                className="h-full rounded-sm"
+                style={{ boxShadow: "0 0 10px 1px rgba(0,255,160,0.25), 0 0 20px 2px rgba(0,255,160,0.1)" }}
+              >
+                <ToolCard tool={tool} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 border-t border-brand-border" />
+        </div>
+      )}
 
       {/* ── Featured Tools ───────────────────────────────────────────────── */}
       {!query.trim() && !activeCategory && !activePricing && (
@@ -310,32 +350,59 @@ export default function ToolsSection() {
         <div
           className="mb-10 px-8 py-8 flex flex-col sm:flex-row sm:items-center gap-6 relative overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, #001a0d 0%, #0a0a0a 60%)",
-            border: "1px solid #00ff88",
-            boxShadow: "0 0 20px 3px #00ff88, 0 0 40px 6px #00ff4455",
+            background: "rgba(3,8,6,0.9)",
+            border: "1px solid #00ffa0",
+            boxShadow: "0 0 28px 4px rgba(0,255,160,0.18), inset 0 0 48px rgba(0,0,0,0.5)",
           }}
         >
+          {/* Scanlines */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.025) 2px,rgba(0,255,136,0.025) 4px)",
+              background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,160,0.02) 2px,rgba(0,255,160,0.02) 4px)",
+              zIndex: 0,
             }}
           />
-          <div className="relative flex-1 min-w-0">
-            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "#00ff88" }}>// ai.learning</p>
-            <h2 className="text-2xl font-bold mb-3 text-brand-green">🎓 AI Learning Hub</h2>
-            <div className="w-12 h-px mb-3" style={{ background: "#00ff88", opacity: 0.5 }} />
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(200,220,210,0.85)" }}>
+          {/* Corner brackets */}
+          {[["top-0 left-0","border-t-2 border-l-2"],["top-0 right-0","border-t-2 border-r-2"],["bottom-0 left-0","border-b-2 border-l-2"],["bottom-0 right-0","border-b-2 border-r-2"]].map(([pos, border]) => (
+            <div key={pos} className={`absolute ${pos} w-5 h-5 ${border} border-brand-green pointer-events-none`} style={{zIndex:2}} />
+          ))}
+          <div className="relative flex-1 min-w-0" style={{zIndex:1}}>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <span className="text-xs font-mono text-brand-text tracking-[0.2em] border border-brand-border px-2 py-0.5 uppercase">
+                learning
+              </span>
+              <span className="flex items-center gap-2 text-xs font-mono tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-brand-green inline-block flex-shrink-0"
+                      style={{animation:"d-blink 1s step-end infinite"}} />
+                <span className="text-brand-green">STATUS: ONLINE</span>
+              </span>
+            </div>
+            <p className="text-xs font-mono tracking-[0.28em] uppercase mb-1" style={{ color: "#00cc7a" }}>
+              3DZLABS PRESENTS
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold font-mono mb-3 text-brand-green">
+              🎓 AI Learning Hub
+            </h2>
+            <div className="w-12 h-px mb-3" style={{ background: "#00ffa0", opacity: 0.5 }} />
+            <p className="text-sm font-mono leading-relaxed" style={{ color: "rgba(200,220,210,0.85)" }}>
               Curated courses &amp; certifications to level up your AI skills in 2026 — from beginner to advanced.
             </p>
           </div>
-          <a
-            href="/learning"
-            className="relative shrink-0 text-xs px-6 py-3 tracking-widest font-bold transition-colors duration-200 hover:bg-brand-green hover:text-black"
-            style={{ border: "1px solid #00ff88", color: "#00ff88", background: "transparent" }}
-          >
-            &gt; explore courses &rarr;
-          </a>
+          <div className="relative shrink-0 flex flex-col items-center gap-2" style={{zIndex:1}}>
+            <a
+              href="/learning"
+              className="px-8 py-4 border-2 border-brand-green font-bold font-mono text-lg tracking-widest text-brand-green text-center select-none transition-colors duration-200 hover:bg-brand-green hover:text-black"
+              style={{ display:"block", animation:"d-glow 1.8s ease-in-out infinite" }}
+              onMouseEnter={e => e.currentTarget.style.animation="none"}
+              onMouseLeave={e => e.currentTarget.style.animation="d-glow 1.8s ease-in-out infinite"}
+            >
+              ▶&nbsp; EXPLORE
+            </a>
+            <span className="text-xs font-mono tracking-widest" style={{ color: "rgba(0,255,160,0.35)" }}>
+              FREE COURSES AVAILABLE
+            </span>
+          </div>
         </div>
       )}
 
