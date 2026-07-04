@@ -7,9 +7,45 @@ if (!apiKey) {
 
 const client = new Anthropic({ apiKey });
 
+// In-memory rate limiter: max 10 requests per minute per IP
+const rateLimitMap = new Map();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip) ?? { count: 0, windowStart: now };
+  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+  entry.count++;
+  rateLimitMap.set(ip, entry);
+  // Prune map to avoid unbounded growth
+  if (rateLimitMap.size > 5000) {
+    for (const [key, val] of rateLimitMap) {
+      if (now - val.windowStart > RATE_LIMIT_WINDOW_MS) rateLimitMap.delete(key);
+    }
+  }
+  return entry.count > RATE_LIMIT_MAX;
+}
+
 export async function POST(request) {
+  // Rate limiting
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
+  if (isRateLimited(ip)) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
-    const { query, tools } = await request.json();
+    const body = await request.json();
+    const { query, tools } = body;
+
+    // Input length limit
+    if (typeof query !== "string" || query.length > 200) {
+      return Response.json({ error: "Query must be a string of max 200 characters" }, { status: 400 });
+    }
 
     console.log(`[search] query="${query}" tools=${tools?.length ?? 0}`);
 
