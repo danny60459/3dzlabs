@@ -1,3 +1,5 @@
+import { YouTubeIcon, TikTokIcon } from "@/components/icons/SocialIcons";
+
 // Update this one line whenever a new video drops — no API, just paste the YouTube video ID.
 const LATEST_VIDEO_ID = ""; // e.g. "dQw4w9WgXcQ"
 const LATEST_VIDEO_TITLE = "Latest Video";
@@ -21,7 +23,7 @@ export default function SocialSection() {
           aria-label="Follow 3DZ Labs on YouTube — full AI cinematics and extended videos"
           className="group flex items-center gap-3 bg-brand-surface border border-brand-border hover:border-brand-green transition-colors duration-200 px-3 py-3 rounded-sm"
         >
-          <span className="text-xl leading-none shrink-0" aria-hidden="true">▶️</span>
+          <YouTubeIcon className="w-6 h-6 shrink-0 text-brand-green" />
           <span className="flex flex-col min-w-0">
             <span className="text-sm font-bold text-brand-green group-hover:text-white transition-colors truncate">
               YouTube
@@ -39,7 +41,7 @@ export default function SocialSection() {
           aria-label="Follow 3DZ Labs on TikTok — daily AI shorts and new creations"
           className="group flex items-center gap-3 bg-brand-surface border border-brand-border hover:border-brand-green transition-colors duration-200 px-3 py-3 rounded-sm"
         >
-          <span className="text-xl leading-none shrink-0" aria-hidden="true">🎵</span>
+          <TikTokIcon className="w-6 h-6 shrink-0 text-brand-green" />
           <span className="flex flex-col min-w-0">
             <span className="text-sm font-bold text-brand-green group-hover:text-white transition-colors truncate">
               TikTok

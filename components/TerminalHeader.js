@@ -1,5 +1,7 @@
 "use client";
 
+import { YouTubeIcon, TikTokIcon } from "@/components/icons/SocialIcons";
+
 export default function TerminalHeader() {
   return (
     <header className="border-b border-brand-border px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -26,7 +28,8 @@ export default function TerminalHeader() {
           title="3DZ Labs on YouTube"
           className="hover:text-brand-green transition-colors"
         >
-          ▶️<span className="sr-only">YouTube</span>
+          <YouTubeIcon className="w-5 h-5" />
+          <span className="sr-only">YouTube</span>
         </a>
         <a
           href="https://www.tiktok.com/@big3deezy"
@@ -35,7 +38,8 @@ export default function TerminalHeader() {
           title="3DZ Labs on TikTok"
           className="hover:text-brand-green transition-colors"
         >
-          🎵<span className="sr-only">TikTok</span>
+          <TikTokIcon className="w-5 h-5" />
+          <span className="sr-only">TikTok</span>
         </a>
       </nav>
     </header>
