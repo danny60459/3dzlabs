@@ -2,6 +2,7 @@ import TerminalHeader from "@/components/TerminalHeader";
 import TerminalPrompt from "@/components/TerminalPrompt";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import ToolsSection from "@/components/ToolsSection";
+import SocialSection from "@/components/SocialSection";
 
 export default function Home() {
   return (
@@ -136,6 +137,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* ── Follow / Social ─────────────────────────────────────────────────── */}
+        <SocialSection />
 
         {/* ── Tools + Search ─────────────────────────────────────────────────── */}
         <ToolsSection />

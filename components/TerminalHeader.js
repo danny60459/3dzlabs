@@ -13,11 +13,30 @@ export default function TerminalHeader() {
         </span>
         <span className="hidden sm:inline text-brand-text text-xs">— AI Tools Command Center</span>
       </div>
-      <nav className="flex gap-4 text-xs text-brand-text">
+      <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-brand-text">
         <a href="/" className="hover:text-brand-green transition-colors">./tools</a>
         <a href="/learning" className="hover:text-brand-green transition-colors">./learning</a>
         <a href="/about" className="hover:text-brand-green transition-colors">./about</a>
         <a href="#submit" className="hover:text-brand-green transition-colors">./submit</a>
+        <span className="w-px h-3 bg-brand-border" aria-hidden="true" />
+        <a
+          href="https://youtube.com/@3dzlabs"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="3DZ Labs on YouTube"
+          className="hover:text-brand-green transition-colors"
+        >
+          ▶️<span className="sr-only">YouTube</span>
+        </a>
+        <a
+          href="https://www.tiktok.com/@big3deezy"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="3DZ Labs on TikTok"
+          className="hover:text-brand-green transition-colors"
+        >
+          🎵<span className="sr-only">TikTok</span>
+        </a>
       </nav>
     </header>
   );
